@@ -1,0 +1,19 @@
+#******************************************************************************
+# @file             Makefile.w32
+#******************************************************************************
+SRCDIR              ?=  $(CURDIR)
+VPATH               :=  $(SRCDIR)
+
+CC                  :=  gcc
+CFLAGS              :=  -D_FILE_OFFSET_BITS=64 -Wall -Werror -Wextra -std=c90
+
+CSRC                :=  aout.c hashtab.c ld.c lib.c map.c report.c
+
+all: ld86.exe
+
+clean:
+	if exist ld86.exe ( del /q ld86.exe )
+	if exist ld86 ( del /q ld86 )
+
+ld86.exe: $(CSRC)
+	$(CC) $(CFLAGS) -o $@ $^
