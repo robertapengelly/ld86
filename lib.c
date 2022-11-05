@@ -89,8 +89,7 @@ static void print_help (void) {
     fprintf (stderr, "    --oformat FORMAT      Specify the format of output file (default msdos)\n");
     fprintf (stderr, "                              Supported formats are:\n");
     /*fprintf (stderr, "                                  a.out-i386, coff-i386, msdos-i386, pe-i386\n");*/
-    fprintf (stderr, "                                  a.out-i386, msdos-i386\n");
-    fprintf (stderr, "                                  binary, msdos\n");
+    fprintf (stderr, "                                  a.out-i386, binary, msdos, msdos-mz\n");
     fprintf (stderr, "    --help                Print this help information\n");
     
 _exit:
@@ -279,12 +278,7 @@ void parse_args (int *pargc, char ***pargv, int optind) {
                     state->format = LD_FORMAT_I386_COFF;
                     break;
                 
-                }*/ else if (xstrcasecmp (optarg, "msdos-i386") == 0) {
-                
-                    state->format = LD_FORMAT_I386_MSDOS;
-                    break;
-                
-                }/* else if (xstrcasecmp (optarg, "pe-i386") == 0) {
+                } else if (xstrcasecmp (optarg, "pe-i386") == 0) {
                 
                     state->format = LD_FORMAT_I386_PE;
                     break;
@@ -297,6 +291,11 @@ void parse_args (int *pargc, char ***pargv, int optind) {
                 } else if (xstrcasecmp (optarg, "msdos") == 0) {
                 
                     state->format = LD_FORMAT_MSDOS;
+                    break;
+                
+                } else if (xstrcasecmp (optarg, "msdos-mz") == 0) {
+                
+                    state->format = LD_FORMAT_MSDOS_MZ;
                     break;
                 
                 } else {

@@ -618,7 +618,7 @@ static int write_aout_object (FILE *ofp, unsigned int a_entry) {
 
 }
 
-static int init_msdos_object (void) {
+static int init_msdos_mz_object (void) {
 
     state->text_size = ALIGN_UP (state->text_size, 16);
     state->data_size = ALIGN_UP (state->data_size, 16);
@@ -640,7 +640,7 @@ static int init_msdos_object (void) {
 
 }
 
-static int write_msdos_object (FILE *ofp) {
+static int write_msdos_mz_object (FILE *ofp) {
 
     unsigned short ibss_addr = (data - output) + state->data_size;
     unsigned short ibss_size = state->bss_size;
@@ -692,15 +692,6 @@ int create_executable_from_aout_objects (void) {
         
         }
     
-    } else if (state->format == LD_FORMAT_I386_MSDOS) {
-    
-        if ((err = init_msdos_object ())) {
-        
-            report_at (program_name, 0, REPORT_ERROR, "failed to initialize msdos object");
-            return err;
-        
-        }
-    
     } else if (state->format == LD_FORMAT_BINARY || state->format == LD_FORMAT_MSDOS) {
     
         if (state->format == LD_FORMAT_MSDOS) {
@@ -720,6 +711,15 @@ int create_executable_from_aout_objects (void) {
         
         text = (void *) (char *) output;
         data = (void *) ((char *) text + state->text_size);
+    
+    } else if (state->format == LD_FORMAT_MSDOS_MZ) {
+    
+        if ((err = init_msdos_mz_object ())) {
+        
+            report_at (program_name, 0, REPORT_ERROR, "failed to initialize msdos object");
+            return err;
+        
+        }
     
     }
     
@@ -784,19 +784,6 @@ int create_executable_from_aout_objects (void) {
         
         }
     
-    } else if (state->format == LD_FORMAT_I386_MSDOS) {
-    
-        fix_offsets ();
-        
-        if ((err = write_msdos_object (ofp))) {
-        
-            report_at (program_name, 0, REPORT_ERROR, "failed to write msdos object");
-            fclose (ofp);
-            
-            return err;
-        
-        }
-    
     } else if (state->format == LD_FORMAT_BINARY || state->format == LD_FORMAT_MSDOS) {
     
         fix_offsets ();
@@ -807,6 +794,19 @@ int create_executable_from_aout_objects (void) {
             fclose (ofp);
             
             return EXIT_FAILURE;
+        
+        }
+    
+    } else if (state->format == LD_FORMAT_MSDOS_MZ) {
+    
+        fix_offsets ();
+        
+        if ((err = write_msdos_mz_object (ofp))) {
+        
+            report_at (program_name, 0, REPORT_ERROR, "failed to write msdos object");
+            fclose (ofp);
+            
+            return err;
         
         }
     
