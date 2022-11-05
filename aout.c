@@ -562,7 +562,7 @@ static int init_aout_object (void) {
     output_size = header_size + state->text_size + state->data_size;
     
     if ((output = malloc (output_size)) == NULL) {
-        return 0;
+        return 1;
     }
     
     memset (output, 0, output_size);
@@ -571,7 +571,7 @@ static int init_aout_object (void) {
     text = (void *) ((char *) output + header_size);
     data = (void *) ((char *) text + state->text_size);
     
-    return 1;
+    return 0;
 
 }
 
@@ -627,7 +627,7 @@ static int init_msdos_object (void) {
     output_size = header_size + state->text_size + state->data_size;
     
     if ((output = malloc (output_size)) == NULL) {
-        return 0;
+        return 1;
     }
     
     memset (output, 0, output_size);
@@ -636,7 +636,7 @@ static int init_msdos_object (void) {
     text = (void *) ((char *) output + header_size);
     data = (void *) ((char *) text + state->text_size);
     
-    return 1;
+    return 0;
 
 }
 
