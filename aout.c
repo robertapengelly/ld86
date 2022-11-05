@@ -640,7 +640,7 @@ static int init_msdos_mz_object (void) {
 
 }
 
-static int write_msdos_mz_object (FILE *ofp) {
+static int write_msdos_mz_object (FILE *ofp, unsigned int entry) {
 
     unsigned short ibss_addr = (data - output) + state->data_size;
     unsigned short ibss_size = state->bss_size;
@@ -662,6 +662,7 @@ static int write_msdos_mz_object (FILE *ofp) {
     msdos_hdr->e_ss = stack_addr / 16;
     msdos_hdr->e_sp = stack_addr % 16 + stack_size;
     
+    msdos_hdr->e_ip = entry;
     msdos_hdr->e_lfarlc = sizeof (*msdos_hdr);
     
     if (fwrite ((char *) output, output_size, 1, ofp) != 1) {
@@ -801,7 +802,7 @@ int create_executable_from_aout_objects (void) {
     
         fix_offsets ();
         
-        if ((err = write_msdos_mz_object (ofp))) {
+        if ((err = write_msdos_mz_object (ofp, get_entry ()))) {
         
             report_at (program_name, 0, REPORT_ERROR, "failed to write msdos object");
             fclose (ofp);
