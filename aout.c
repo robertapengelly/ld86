@@ -457,11 +457,16 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
         struct aout_object *symobj;
         int symidx;
         
-        if (get_symbol (&symobj, &symidx, symname, 0)) {
+        if (strcmp (symname, "DGROUP") == 0 && state->format != LD_FORMAT_BINARY) {
+        
+            unsigned int data_addr = (unsigned int) (data - output);
+            symbol->n_value = data_addr / 16;
+        
+        } else if (get_symbol (&symobj, &symidx, symname, 0)) {
+            symbol = &symobj->symtab[symidx];
+        } else {
             return 1;
         }
-        
-        symbol = &symobj->symtab[symidx];
     
     }
     
