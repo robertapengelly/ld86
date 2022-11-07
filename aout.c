@@ -462,7 +462,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
             unsigned int data_addr = (unsigned int) (data - output);
             symbol->n_value = data_addr / 16;
         
-        } else if (get_symbol (&symobj, &symidx, symname, 0)) {
+        } else if (!get_symbol (&symobj, &symidx, symname, 0)) {
             symbol = &symobj->symtab[symidx];
         } else {
             return 1;
