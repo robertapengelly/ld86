@@ -2,6 +2,8 @@
  * @file            lib.c
  *****************************************************************************/
 #include    <ctype.h>
+#include    <errno.h>
+#include    <limits.h>
 #include    <stddef.h>
 #include    <stdio.h>
 #include    <stdlib.h>
@@ -30,7 +32,8 @@ enum options {
     OPTION_IMPURE,
     OPTION_MAP,
     OPTION_MAPFILE,
-    OPTION_OUTFILE
+    OPTION_OUTFILE,
+    OPTION_STACK
 
 };
 
@@ -44,6 +47,7 @@ static struct option opts[] = {
     { "o",          OPTION_OUTFILE,     OPTION_HAS_ARG  },
     
     { "-oformat",   OPTION_FORMAT,      OPTION_HAS_ARG  },
+    { "-stacksize", OPTION_STACK,       OPTION_HAS_ARG  },
     { "-help",      OPTION_HELP,        OPTION_NO_ARG   },
     
     { 0,            0,                  0               }
@@ -90,6 +94,7 @@ static void print_help (void) {
     fprintf (stderr, "                              Supported formats are:\n");
     /*fprintf (stderr, "                                  a.out-i386, coff-i386, msdos-i386, pe-i386\n");*/
     fprintf (stderr, "                                  a.out-i386, binary, msdos, msdos-mz\n");
+    fprintf (stderr, "    --stacksize SIZE      Specifies the size of the stack pointer\n");
     fprintf (stderr, "    --help                Print this help information\n");
     
 _exit:
@@ -359,6 +364,33 @@ void parse_args (int *pargc, char ***pargv, int optind) {
                 }
                 
                 state->outfile = xstrdup (optarg);
+                break;
+            
+            }
+            
+            case OPTION_STACK: {
+            
+                long conversion;
+                char *temp;
+                
+                errno = 0;
+                conversion = strtol (optarg, &temp, 0);
+                
+                if (!*optarg || isspace ((int) *optarg) || errno || *temp) {
+                
+                    report_at (program_name, 0, REPORT_ERROR, "bad number of stack size");
+                    exit (EXIT_FAILURE);
+                
+                }
+                
+                if (conversion < 0 || conversion > USHRT_MAX) {
+                
+                    report_at (program_name, 0, REPORT_ERROR, "stack size must be between 0 and %u", USHRT_MAX);
+                    exit (EXIT_FAILURE);
+                
+                }
+                
+                state->stack_size = (size_t ) conversion;
                 break;
             
             }

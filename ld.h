@@ -40,7 +40,6 @@ struct coff_object {
     void *raw;
     
     size_t size;
-    
     struct coff_header *header;
 
 };
@@ -59,7 +58,8 @@ struct ld_state {
     struct coff_object **coff_objs;
     size_t nb_coff_objs;
     
-    unsigned int text_size, data_size, bss_size;
+    size_t text_size, data_size, bss_size;
+    size_t stack_size;
 
 };
 
