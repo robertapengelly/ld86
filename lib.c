@@ -94,7 +94,7 @@ static void print_help (void) {
     fprintf (stderr, "                              Supported formats are:\n");
     /*fprintf (stderr, "                                  a.out-i386, coff-i386, msdos-i386, pe-i386\n");*/
     fprintf (stderr, "                                  a.out-i386, binary, msdos, msdos-mz\n");
-    fprintf (stderr, "    --stacksize SIZE      Specifies the size of the stack pointer\n");
+    fprintf (stderr, "    --stacksize SIZE      Specifies the size of the stack (default 4096)\n");
     fprintf (stderr, "    --help                Print this help information\n");
     
 _exit:
@@ -408,5 +408,6 @@ void parse_args (int *pargc, char ***pargv, int optind) {
     
     if (!state->format) { state->format = LD_FORMAT_MSDOS; }
     if (!state->outfile) { state->outfile = "a.out"; }
+    if (!state->stack_size) { state->stack_size = 4096; }
 
 }
