@@ -643,53 +643,88 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
     
     }
     
-    if (dgroup) {
+    if (opcode == 0x9A) {
     
-        result -= header_size;
-        number_to_chars (p, (result & 0xffff) / 16, 2);
-    
-    } else if (opcode == 0x9A) {
-    
-        if (result < 32767) {
+        int i;
+        result -= offset;
         
-            /*result -= ALIGN_UP (tgr.relocations_count * 4, 16);*/
-            result -= header_size;
+        /*if (result >= 32767) {*/
+        if (result >= 65535) {
+        
+            if (state->format == LD_FORMAT_BINARY || state->format == LD_FORMAT_MSDOS) {
             
-            number_to_chars (p, result - r->r_address - 2, 2);
-            *(p - 1) = 0xE8;
+                report_at (object->filename, r->r_address, REPORT_ERROR, "call exceeds 65535 bytes");
+                return 1;
             
-            memset (p + 2, 0x90, 2);
+            }
             
-            if (tgr.relocations_count > 0) {
+            number_to_chars (p, result % 16, 2);
+            number_to_chars (p + 2, result / 16, 2);
             
-                fix_offset (tgr.relocations[tgr.relocations_count - 1]);
-                remove_relocation (&tgr, tgr.relocations[tgr.relocations_count - 1]);
+            for (i = 0; i < tgr.relocations_count; ++i) {
+            
+                if (tgr.relocations[i].r_address == r->r_address) {
+                    tgr.relocations[i].r_address += 2;
+                }
             
             }
         
         } else {
         
-            number_to_chars (p, result % 16, 2);
-            number_to_chars (p + 2, result / 16, 2);
+            result -= header_size;
             
-            if (tgr.relocations_count > 0) {
-                tgr.relocations[tgr.relocations_count - 1].r_address += 2;
+            if (state->format == LD_FORMAT_MSDOS_MZ) {
+            
+                *(p - 1) = 0x0E;
+                
+                p++;
+                r->r_address++;
+            
+            }
+            
+            number_to_chars (p, result - r->r_address - 2, 2);
+            *(p - 1) = 0xE8;
+            
+            memset (p + 2, 0x90, 1);
+            
+            for (i = 0; i < tgr.relocations_count; ++i) {
+            
+                if (tgr.relocations[i].r_address + 1 == r->r_address) {
+                
+                    tgr.relocations[i].r_address++;
+                    
+                    fix_offset (tgr.relocations[i]);
+                    remove_relocation (&tgr, tgr.relocations[i]);
+                
+                }
+            
             }
         
         }
     
+    } else if (dgroup) {
+    
+        result -= header_size;
+        number_to_chars (p, (result & 0xffff) / 16, 2);
+    
     } else {
     
-        if (state->format != LD_FORMAT_I386_AOUT) {
+        if (state->format == LD_FORMAT_MSDOS_MZ) {
         
             unsigned int data_addr = (unsigned int) (data - output);
+            result &= 0xffff;
             
-            if (result + state->text_size >= data_addr) {
+            if ((result - offset) + state->text_size >= data_addr) {
             
+                int i;
                 result -= state->text_size;
                 
-                if (tgr.relocations_count > 0) {
-                    remove_relocation (&tgr, tgr.relocations[tgr.relocations_count - 1]);
+                for (i = 0; i < tgr.relocations_count; ++i) {
+                
+                    if (tgr.relocations[i].r_address == r->r_address) {
+                        remove_relocation (&tgr, tgr.relocations[i]);
+                    }
+                
                 }
             
             }
@@ -829,16 +864,22 @@ static int write_msdos_mz_object (FILE *ofp, unsigned int entry) {
     size_t ibss_size = state->bss_size;
     
     size_t stack_addr, stack_size;
-    unsigned int reloc_sz = 0;
     
+    unsigned int reloc_sz = 0;
     int i;
     
-    if (tgr.relocations_count > 0) {
+    for (i = 0; i < tgr.relocations_count; ++i) {
     
-        reloc_sz = ALIGN_UP (tgr.relocations_count * 4, 16);
-        ibss_addr += reloc_sz;
+        struct relocation_info *r = &tgr.relocations[i];
+        
+        if (((r->r_symbolnum >> 24) & 0xff) == N_ABS) {
+            remove_relocation (&tgr, *r);
+        }
     
     }
+    
+    reloc_sz = ALIGN_UP (tgr.relocations_count * 4, 16);
+    ibss_addr += reloc_sz;
     
     stack_addr = ibss_addr + ibss_size;
     stack_size = state->stack_size;
@@ -858,7 +899,9 @@ static int write_msdos_mz_object (FILE *ofp, unsigned int entry) {
     msdos_hdr->e_ss = (stack_addr / 16);
     msdos_hdr->e_sp = (stack_addr % 16 + stack_size);
     
-    msdos_hdr->e_ip = entry;
+    msdos_hdr->e_ip = entry % 16;
+    msdos_hdr->e_cs = entry / 16;
+    
     msdos_hdr->e_lfarlc = header_size;
     
     if (tgr.relocations_count > 0) {
@@ -872,7 +915,9 @@ static int write_msdos_mz_object (FILE *ofp, unsigned int entry) {
         memcpy ((char *) output + header_size + reloc_sz, temp, output_size - header_size);
         
         free (temp);
+        
         relocs = (char *) output + header_size;
+        text = (char *) output + header_size + reloc_sz;
         
         memset (relocs, 0, reloc_sz);
         output_size += reloc_sz;
@@ -880,9 +925,7 @@ static int write_msdos_mz_object (FILE *ofp, unsigned int entry) {
         for (i = 0; i < tgr.relocations_count; ++i) {
         
             unsigned int offset = (i * 4);
-            /*tgr.relocations[i].r_address += 2;*/
             
-            /*report_at (NULL, 0, REPORT_INTERNAL_ERROR, "%x, %x", tgr.relocations[i].r_address, tgr.relocations[i].r_symbolnum);*/
             number_to_chars ((unsigned char *) relocs + offset, tgr.relocations[i].r_address % 16, 2);
             number_to_chars ((unsigned char *) relocs + offset + 2, tgr.relocations[i].r_address / 16, 2);
         
