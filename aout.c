@@ -555,7 +555,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
     }
     
     p = (unsigned char *) output + header_size + r->r_address;
-    opcode = *(int *) (p - 1);
+    opcode = *(int *) (p - 1) = 0xff;
     
     symbol = &object->symtab[symbolnum];
     
