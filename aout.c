@@ -868,7 +868,7 @@ static int write_msdos_mz_object (FILE *ofp, unsigned int entry) {
     unsigned int reloc_sz = 0;
     int i;
     
-    for (i = 0; i < tgr.relocations_count; ++i) {
+    /*for (i = 0; i < tgr.relocations_count; ++i) {
     
         struct relocation_info *r = &tgr.relocations[i];
         
@@ -876,7 +876,7 @@ static int write_msdos_mz_object (FILE *ofp, unsigned int entry) {
             remove_relocation (&tgr, *r);
         }
     
-    }
+    }*/
     
     reloc_sz = ALIGN_UP (tgr.relocations_count * 4, 16);
     ibss_addr += reloc_sz;
