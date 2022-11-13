@@ -566,12 +566,18 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
         struct aout_object *symobj;
         int symidx;
         
-        if (strcmp (symname, "DGROUP") == 0) {
+        if (strstart ("DGROUP", (const char **) &symname)) {
         
-            symbol->n_value = (data - output);
-            ext = 0;
+            if (strcmp (symname, "__end") == 0) {
+                symbol->n_value = state->data_size + state->bss_size;
+            } else if (strcmp (symname, "__edata") == 0) {
+                symbol->n_value = state->data_size;
+            } else {
             
-            dgroup = 1;
+                symbol->n_value = (data - output);
+                dgroup = 1;
+            
+            }
         
         } else if (!get_symbol (&symobj, &symidx, symname, 0)) {
             symbol = &symobj->symtab[symidx];

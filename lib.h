@@ -7,6 +7,8 @@
 #include    <stddef.h>
 
 char *xstrdup (const char *str);
+
+int strstart (const char *val, const char **str);
 int xstrcasecmp (const char *s1, const char *s2);
 
 void *xmalloc (size_t size);
