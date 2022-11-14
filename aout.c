@@ -562,15 +562,16 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
     if (ext) {
     
         char *symname = object->strtab + symbol->n_strx;
+        char *temp = xstrdup (symname);
         
         struct aout_object *symobj;
         int symidx;
         
-        if (strstart ("DGROUP", (const char **) &symname)) {
+        if (strstart ("DGROUP", (const char **) &temp)) {
         
-            if (strcmp (symname, "__end") == 0) {
+            if (strcmp (temp, "__end") == 0) {
                 symbol->n_value = state->data_size + state->bss_size;
-            } else if (strcmp (symname, "__edata") == 0) {
+            } else if (strcmp (temp, "__edata") == 0) {
                 symbol->n_value = state->data_size;
             } else {
             
