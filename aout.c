@@ -510,7 +510,7 @@ static int add_relocation (struct gr *gr, struct relocation_info *r) {
 
 }
 
-static int relocate (struct aout_object *object, struct relocation_info *r, int offset, int is_data) {
+static int relocate (struct aout_object *object, struct relocation_info *r, int is_data) {
 
     struct nlist *symbol;
     int result = 0, opcode;
@@ -617,8 +617,6 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
             result = *(int *) ((char *) output + header_size + r->r_address);
         }
         
-        result += offset;
-        
         if (ext || dgroup) {
             result += symbol->n_value;
         } else {
@@ -653,7 +651,6 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
     if (opcode == 0x9A) {
     
         int i;
-        result -= offset;
         
         /*if (result >= 32767) {*/
         if (result >= 65535) {
@@ -721,7 +718,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
             unsigned int data_addr = (unsigned int) (data - output);
             result &= 0xffff;
             
-            if ((result - offset) + state->text_size >= data_addr) {
+            if (result + state->text_size >= data_addr) {
             
                 int i;
                 result -= state->text_size;
@@ -752,7 +749,7 @@ static int glue (struct aout_object *object) {
     
     for (i = 0; i < object->trelocs_count; i++) {
     
-        if (relocate (object, &object->trelocs[i], state->code_offset, 0)) {
+        if (relocate (object, &object->trelocs[i], 0)) {
             err = 1;
         }
     
@@ -760,7 +757,7 @@ static int glue (struct aout_object *object) {
     
     for (i = 0; i < object->drelocs_count; i++) {
     
-        if (relocate (object, &object->drelocs[i], state->code_offset, 1)) {
+        if (relocate (object, &object->drelocs[i], 1)) {
             err = 1;
         }
     
@@ -820,7 +817,7 @@ static int write_aout_object (FILE *ofp, unsigned int a_entry) {
     
         if (fwrite (tgr.relocations, tgr.relocations_count * sizeof (struct relocation_info), 1, ofp) != 1) {
         
-            report_at (program_name, 0, REPORT_ERROR, "failed to write data to '%s'", state->outfile);
+            report_at (program_name, 0, REPORT_ERROR, "failed to write text relocations to '%s'", state->outfile);
             return 1;
         
         }
@@ -831,7 +828,7 @@ static int write_aout_object (FILE *ofp, unsigned int a_entry) {
     
         if (fwrite (dgr.relocations, dgr.relocations_count * sizeof (struct relocation_info), 1, ofp) != 1) {
         
-            report_at (program_name, 0, REPORT_ERROR, "failed to write data to '%s'", state->outfile);
+            report_at (program_name, 0, REPORT_ERROR, "failed to write data relocations to '%s'", state->outfile);
             return 1;
         
         }
