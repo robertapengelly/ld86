@@ -376,7 +376,7 @@ static void paste (struct aout_object *object) {
         if (state->format == LD_FORMAT_I386_PE) {
             obj_text_size = ALIGN_UP (header->a_text, FILE_ALIGNMENT);
         } else {
-            obj_text_size = ALIGN_UP (header->a_text, PAGE_SIZE);
+            obj_text_size = ALIGN_UP (header->a_text, SECTION_ALIGNMENT);
         }
     
     }
@@ -394,7 +394,7 @@ static void paste (struct aout_object *object) {
         if (state->format == LD_FORMAT_I386_PE) {
             obj_data_size = ALIGN_UP (header->a_data, FILE_ALIGNMENT);
         } else {
-            obj_data_size = ALIGN_UP (header->a_data, PAGE_SIZE);
+            obj_data_size = ALIGN_UP (header->a_data, SECTION_ALIGNMENT);
         }
     
     }
@@ -411,7 +411,7 @@ static void paste (struct aout_object *object) {
         if (state->format == LD_FORMAT_I386_PE) {
             obj_bss_size = ALIGN_UP (header->a_bss, FILE_ALIGNMENT);
         } else {
-            obj_bss_size = ALIGN_UP (header->a_bss, PAGE_SIZE);
+            obj_bss_size = ALIGN_UP (header->a_bss, SECTION_ALIGNMENT);
         }
     
     }
@@ -777,7 +777,7 @@ static int init_aout_object (void) {
     header_size = sizeof (*aout_hdr);
     
     if (!state->impure) {
-        header_size = ALIGN_UP (header_size, PAGE_SIZE);
+        header_size = ALIGN_UP (header_size, SECTION_ALIGNMENT);
     }
     
     output_size = header_size + state->text_size + state->data_size;
@@ -1013,7 +1013,7 @@ int create_executable_from_aout_objects (void) {
         if (state->format == LD_FORMAT_I386_PE) {
             state->bss_size = ALIGN_UP (state->bss_size, FILE_ALIGNMENT);
         } else {
-            state->bss_size = ALIGN_UP (state->bss_size, PAGE_SIZE);
+            state->bss_size = ALIGN_UP (state->bss_size, SECTION_ALIGNMENT);
         }
     
     }

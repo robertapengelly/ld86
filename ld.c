@@ -154,9 +154,9 @@ static int process_aout (void *obj, size_t sz, const char *fname, int quiet) {
         
         } else {
         
-            state->text_size    += ALIGN_UP (hdr->a_text,   PAGE_SIZE);
-            state->data_size    += ALIGN_UP (hdr->a_data,   PAGE_SIZE);
-            state->bss_size     += ALIGN_UP (hdr->a_bss,    PAGE_SIZE);
+            state->text_size    += ALIGN_UP (hdr->a_text,   SECTION_ALIGNMENT);
+            state->data_size    += ALIGN_UP (hdr->a_data,   SECTION_ALIGNMENT);
+            state->bss_size     += ALIGN_UP (hdr->a_bss,    SECTION_ALIGNMENT);
         
         }
     
