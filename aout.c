@@ -691,25 +691,22 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
     
     } else if (state->format == LD_FORMAT_MSDOS_MZ) {
     
-        long temp = result - state->text_size;
         int i;
         
-        if ((temp & 0xffff) >= 0) {
-        
-            result = temp;
-            
-            for (i = 0; i < tgr.relocations_count; ++i) {
-            
-                if (tgr.relocations[i].r_address == r->r_address) {
-                    remove_relocation (&tgr, tgr.relocations[i]);
-                }
-            
-            }
-        
+        if (symbolnum == 6) {
+            result -= state->text_size;
         } else if (length == 4) {
             result &= 0xffffffff;
         } else if (length == 2) {
             result &= 0xffff;
+        }
+        
+        for (i = 0; i < tgr.relocations_count; ++i) {
+        
+            if (tgr.relocations[i].r_address == r->r_address) {
+                remove_relocation (&tgr, tgr.relocations[i]);
+            }
+        
         }
         
         number_to_chars (p, result, length);
