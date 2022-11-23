@@ -1,6 +1,7 @@
 /******************************************************************************
  * @file            aout.c
  *****************************************************************************/
+#include    <limits.h>
 #include    <stddef.h>
 #include    <stdio.h>
 #include    <stdlib.h>
@@ -83,12 +84,12 @@ static int get_symbol (struct aout_object **obj_out, int *index, const char *nam
 
 static unsigned int get_entry (void) {
 
+    struct aout_object *symobj;
+    int symidx;
+    
     if (!state->entry || strcmp (state->entry, "") == 0) {
         state->entry = "_start";
     }
-    
-    struct aout_object *symobj;
-    int symidx;
     
     if (get_symbol (&symobj, &symidx, state->entry, 1)) {
     
@@ -113,7 +114,7 @@ static void number_to_chars (unsigned char *p, unsigned long number, unsigned lo
 
 static void fix_offset (struct relocation_info r) {
 
-    unsigned int zapdata = (text - output);
+    unsigned int zapdata = ((char *) text - (char *) output);
     unsigned int orig;
     
     unsigned char *p;
@@ -123,7 +124,7 @@ static void fix_offset (struct relocation_info r) {
         return;
     }
     
-    p = text + r.r_address;
+    p = (unsigned char *) text + r.r_address;
     length = (r.r_symbolnum & (3 << 25)) >> 25;
     
     memcpy (&orig, p, length);
@@ -131,7 +132,7 @@ static void fix_offset (struct relocation_info r) {
     
     if (state->format == LD_FORMAT_I386_PE) {
     
-        unsigned int data_offset = (data - output);
+        unsigned int data_offset = ((char *) data - (char *) output);
         
         if (orig >= data_offset) {
         
@@ -154,7 +155,7 @@ static void fix_offset (struct relocation_info r) {
 
 static void fix_offsets (void) {
 
-    unsigned int zapdata = (text - output);
+    unsigned int zapdata = ((char *) text - (char *) output);
     unsigned char *p;
     
     int i, length;
@@ -168,7 +169,7 @@ static void fix_offsets (void) {
             continue;
         }
         
-        p = text + r->r_address;
+        p = (unsigned char *) text + r->r_address;
         length = (r->r_symbolnum & (3 << 25)) >> 25;
         
         if (*(p - 1) == 0x9A) {
@@ -186,7 +187,7 @@ static void fix_offsets (void) {
         
         if (state->format == LD_FORMAT_I386_PE) {
         
-            unsigned int data_offset = (data - output);
+            unsigned int data_offset = ((char *) data - (char *) output);
             
             if (orig >= data_offset) {
             
@@ -230,7 +231,7 @@ static void fix_offsets (void) {
         
         if (state->format == LD_FORMAT_I386_PE) {
         
-            unsigned int data_offset = (data - output);
+            unsigned int data_offset = ((char *) data - (char *) output);
             
             if (orig >= data_offset) {
             
@@ -575,7 +576,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
                 symbol->n_value = state->data_size;
             } else {
             
-                symbol->n_value = (data - output);
+                symbol->n_value = ((char *) data - (char *) output);
                 dgroup = 1;
             
             }
@@ -715,10 +716,9 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
     
         if (state->format == LD_FORMAT_MSDOS_MZ) {
         
-            unsigned int data_addr = (unsigned int) (data - output);
             result &= 0xffff;
             
-            if (result + state->text_size >= data_addr) {
+            if ((unsigned int) result >= state->text_size) {
             
                 int i;
                 result -= state->text_size;
@@ -928,10 +928,20 @@ static int write_msdos_mz_object (FILE *ofp, unsigned int entry) {
         
         for (i = 0; i < tgr.relocations_count; ++i) {
         
+            struct relocation_info *r = &tgr.relocations[i];
             unsigned int offset = (i * 4);
             
-            number_to_chars ((unsigned char *) relocs + offset, tgr.relocations[i].r_address % 16, 2);
-            number_to_chars ((unsigned char *) relocs + offset + 2, tgr.relocations[i].r_address / 16, 2);
+            if (r->r_address >= 65535) {
+            
+                number_to_chars ((unsigned char *) relocs + offset, r->r_address % 16, 2);
+                number_to_chars ((unsigned char *) relocs + offset + 2, r->r_address / 16, 2);
+            
+            } else {
+            
+                number_to_chars ((unsigned char *) relocs + offset, r->r_address, 2);
+                number_to_chars ((unsigned char *) relocs + offset + 2, 0, 2);
+            
+            }
         
         }
     
