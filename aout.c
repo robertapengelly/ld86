@@ -112,7 +112,7 @@ static void number_to_chars (unsigned char *p, unsigned long number, unsigned lo
 
 }
 
-static void fix_offset (struct relocation_info r) {
+/*static void fix_offset (struct relocation_info r) {
 
     unsigned int zapdata = ((char *) text - (char *) output);
     unsigned int orig;
@@ -151,7 +151,7 @@ static void fix_offset (struct relocation_info r) {
     
     memcpy (p, &orig, length);
 
-}
+}*/
 
 static void fix_offsets (void) {
 
@@ -514,7 +514,7 @@ static int add_relocation (struct gr *gr, struct relocation_info *r) {
 static int relocate (struct aout_object *object, struct relocation_info *r, int is_data) {
 
     struct nlist *symbol;
-    int result = 0, opcode;
+    long result = 0, opcode;
     
     unsigned char *p;
     int dgroup = 0;
@@ -576,7 +576,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
                 symbol->n_value = state->data_size;
             } else {
             
-                symbol->n_value = ((char *) data - (char *) output);
+                result = ((char *) data - (char *) output);
                 dgroup = 1;
             
             }
@@ -590,7 +590,11 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
     }
     
     if (pcrel) {
-        result = (int) symbol->n_value - (r->r_address + length);
+    
+        if (result == 0) {
+            result = (int) symbol->n_value - (r->r_address + length);
+        }
+    
     } else {
     
         if (dgroup || !ext || (symbol->n_type & N_TYPE) == N_BSS || (symbol->n_type & N_TYPE) == N_DATA || (symbol->n_type & N_TYPE) == N_TEXT) {
@@ -614,12 +618,16 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
             result = ((temp >> 16) & 0xffff) * 16;
             result += temp & 0xffff;
         
-        } else {
+        } else if (result == 0) {
             result = *(int *) ((char *) output + header_size + r->r_address);
         }
         
         if (ext || dgroup) {
-            result += symbol->n_value;
+        
+            if (ext) {
+                result += symbol->n_value;
+            }
+        
         } else {
         
             if ((symbolnum == 6) || (symbolnum == 8)) {
@@ -654,7 +662,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
         int i;
         
         /*if (result >= 32767) {*/
-        if (result >= 65535) {
+        if (length == 4) {
         
             if (state->format == LD_FORMAT_BINARY || state->format == LD_FORMAT_MSDOS) {
             
@@ -662,47 +670,16 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
                 return 1;
             
             }
-            
-            number_to_chars (p, result % 16, 2);
-            number_to_chars (p + 2, result / 16, 2);
-            
-            for (i = 0; i < tgr.relocations_count; ++i) {
-            
-                if (tgr.relocations[i].r_address == r->r_address) {
-                    tgr.relocations[i].r_address += 2;
-                }
-            
-            }
         
-        } else {
+        }
         
-            result -= header_size;
-            
-            if (state->format == LD_FORMAT_MSDOS_MZ) {
-            
-                *(p - 1) = 0x0E;
-                
-                p++;
-                r->r_address++;
-            
-            }
-            
-            number_to_chars (p, result - r->r_address - 2, 2);
-            *(p - 1) = 0xE8;
-            
-            memset (p + 2, 0x90, 1);
-            
-            for (i = 0; i < tgr.relocations_count; ++i) {
-            
-                if (tgr.relocations[i].r_address + 1 == r->r_address) {
-                
-                    tgr.relocations[i].r_address++;
-                    
-                    fix_offset (tgr.relocations[i]);
-                    remove_relocation (&tgr, tgr.relocations[i]);
-                
-                }
-            
+        number_to_chars (p, result % 16, 2);
+        number_to_chars (p + 2, result / 16, 2);
+        
+        for (i = 0; i < tgr.relocations_count; ++i) {
+        
+            if (tgr.relocations[i].r_address == r->r_address) {
+                tgr.relocations[i].r_address += 2;
             }
         
         }
@@ -710,33 +687,35 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
     } else if (dgroup) {
     
         result -= header_size;
-        number_to_chars (p, (result & 0xffff) / 16, 2);
+        number_to_chars (p, result / 16, 2);
     
-    } else {
+    } else if (state->format == LD_FORMAT_MSDOS_MZ) {
     
-        if (state->format == LD_FORMAT_MSDOS_MZ) {
+        long temp = result - state->text_size;
+        int i;
         
-            result &= 0xffff;
+        if ((temp & 0xffff) >= 0) {
+        
+            result = temp;
             
-            if ((unsigned int) result >= state->text_size) {
+            for (i = 0; i < tgr.relocations_count; ++i) {
             
-                int i;
-                result -= state->text_size;
-                
-                for (i = 0; i < tgr.relocations_count; ++i) {
-                
-                    if (tgr.relocations[i].r_address == r->r_address) {
-                        remove_relocation (&tgr, tgr.relocations[i]);
-                    }
-                
+                if (tgr.relocations[i].r_address == r->r_address) {
+                    remove_relocation (&tgr, tgr.relocations[i]);
                 }
             
             }
         
+        } else if (length == 4) {
+            result &= 0xffffffff;
+        } else if (length == 2) {
+            result &= 0xffff;
         }
         
         number_to_chars (p, result, length);
     
+    } else {
+        number_to_chars (p, result, length);
     }
     
     return 0;
