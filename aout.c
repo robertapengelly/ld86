@@ -967,12 +967,12 @@ int create_executable_from_aout_objects (void) {
     
     } else if (state->format == LD_FORMAT_BINARY || state->format == LD_FORMAT_MSDOS) {
     
-        if (state->format == LD_FORMAT_MSDOS) {
+        /*if (state->format == LD_FORMAT_MSDOS) {
         
             state->text_size = ALIGN_UP (state->text_size, 16);
             state->data_size = ALIGN_UP (state->data_size, 16);
         
-        }
+        }*/
         
         output_size = state->text_size + state->data_size;
         
