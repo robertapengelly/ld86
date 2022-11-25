@@ -3,6 +3,7 @@
  *****************************************************************************/
 #include    <limits.h>
 #include    <stddef.h>
+#include    <stdint.h>
 #include    <stdio.h>
 #include    <stdlib.h>
 #include    <string.h>
@@ -17,14 +18,14 @@
 static struct aout_exec *aout_hdr;
 static struct msdos_header *msdos_hdr;
 
-static size_t header_size = 0, output_size = 0;
+static unsigned long header_size = 0, output_size = 0;
 static void *data = 0, *output = 0, *text = 0;
 
 
 struct gr {
 
-    int relocations_count;
-    int relocations_max;
+    int32_t relocations_count;
+    int32_t relocations_max;
     
     struct relocation_info *relocations;
 
@@ -34,10 +35,10 @@ static struct gr tgr = { 0, 64, NULL };
 static struct gr dgr = { 0, 64, NULL };
 
 
-static int get_symbol (struct aout_object **obj_out, int *index, const char *name, int quiet) {
+static int get_symbol (struct aout_object **obj_out, int32_t *index, const char *name, int quiet) {
 
-    size_t object_i;
-    int symbol_i;
+    unsigned long object_i;
+    int32_t symbol_i;
     
     for (object_i = 0; object_i < state->nb_aout_objs; ++object_i) {
     
@@ -82,10 +83,10 @@ static int get_symbol (struct aout_object **obj_out, int *index, const char *nam
 
 }
 
-static unsigned int get_entry (void) {
+static uint32_t get_entry (void) {
 
     struct aout_object *symobj;
-    int symidx;
+    int32_t symidx;
     
     if (!state->entry || strcmp (state->entry, "") == 0) {
         state->entry = "_start";
@@ -155,15 +156,15 @@ static void number_to_chars (unsigned char *p, unsigned long number, unsigned lo
 
 static void fix_offsets (void) {
 
-    unsigned int zapdata = ((char *) text - (char *) output);
+    uint32_t zapdata = ((char *) text - (char *) output);
     unsigned char *p;
     
-    int i, length;
+    int32_t i, length;
     
     for (i = 0; i < tgr.relocations_count; i++) {
     
         struct relocation_info *r = &tgr.relocations[i];
-        unsigned int orig = 0;
+        uint32_t orig = 0;
         
         if (((r->r_symbolnum >> 24) & 0xff) != N_TEXT) {
             continue;
@@ -174,7 +175,7 @@ static void fix_offsets (void) {
         
         if (*(p - 1) == 0x9A) {
         
-            unsigned int temp = *(int *) p;
+            uint32_t temp = *(int32_t *) p;
             
             orig = ((temp >> 16) & 0xffff) * 16;
             orig += temp & 0xffff;
@@ -187,7 +188,7 @@ static void fix_offsets (void) {
         
         if (state->format == LD_FORMAT_I386_PE) {
         
-            unsigned int data_offset = ((char *) data - (char *) output);
+            uint32_t data_offset = ((char *) data - (char *) output);
             
             if (orig >= data_offset) {
             
@@ -218,7 +219,7 @@ static void fix_offsets (void) {
     for (i = 0; i < dgr.relocations_count; i++) {
     
         struct relocation_info *r = &dgr.relocations[i];
-        unsigned int orig = 0;
+        uint32_t orig = 0;
         
         if (((r->r_symbolnum >> 24) & 0xff) != N_TEXT) {
             continue;
@@ -231,7 +232,7 @@ static void fix_offsets (void) {
         
         if (state->format == LD_FORMAT_I386_PE) {
         
-            unsigned int data_offset = ((char *) data - (char *) output);
+            uint32_t data_offset = ((char *) data - (char *) output);
             
             if (orig >= data_offset) {
             
@@ -255,17 +256,17 @@ static void fix_offsets (void) {
 }
 
 
-static int objtextsize = 0, objdatasize = 0, objbsssize = 0;
-static unsigned int text_ptr = 0, data_ptr = 0, bss_ptr = 0;
+static int32_t objtextsize = 0, objdatasize = 0, objbsssize = 0;
+static uint32_t text_ptr = 0, data_ptr = 0, bss_ptr = 0;
 
 static void apply_slides (struct aout_object *object) {
 
-    int i;
+    int32_t i;
     
     for (i = 0; i < object->symtab_count; i++) {
     
         struct nlist *symbol = &object->symtab[i];
-        unsigned int final_slide = 0;
+        uint32_t final_slide = 0;
         
         if ((symbol->n_type & N_TYPE) != N_TEXT && (symbol->n_type & N_TYPE) != N_DATA && (symbol->n_type & N_TYPE) != N_BSS) {
             continue;
@@ -331,7 +332,7 @@ static void apply_slides (struct aout_object *object) {
 
 static void init_map (struct aout_object *object) {
 
-    int symbol_i;
+    int32_t symbol_i;
     
     add_map_object (object->filename, object->header->a_bss, object->header->a_data, object->header->a_text);
     
@@ -365,7 +366,7 @@ static void paste (struct aout_object *object) {
     struct aout_exec *header = object->header;
     
     char *obj_text, *obj_data;
-    unsigned int obj_text_size, obj_data_size, obj_bss_size;
+    uint32_t obj_text_size, obj_data_size, obj_bss_size;
     
     object->text_slide = text_ptr;
     obj_text = (char *) object->raw + sizeof (*header);
@@ -423,7 +424,7 @@ static void paste (struct aout_object *object) {
 
 static void undef_collect (struct aout_object *object) {
 
-    int i, val;
+    int32_t i, val;
     
     for (i = 0; i < object->symtab_count; i++) {
     
@@ -451,7 +452,7 @@ static void undef_collect (struct aout_object *object) {
 static int remove_relocation (struct gr *gr, struct relocation_info r) {
 
     struct relocation_info *relocs;
-    int i, j;
+    int32_t i, j;
     
     if (gr->relocations == NULL || gr->relocations_count == 0) {
         return 0;
@@ -514,20 +515,22 @@ static int add_relocation (struct gr *gr, struct relocation_info *r) {
 static int relocate (struct aout_object *object, struct relocation_info *r, int is_data) {
 
     struct nlist *symbol;
-    long result = 0, opcode;
+    int32_t opcode;
+    
+    unsigned long result = 0;
     
     unsigned char *p;
     int dgroup = 0;
     
-    int symbolnum = r->r_symbolnum & 0xffffff;
-    int pcrel = (r->r_symbolnum & (1 << 24)) >> 24;
-    int ext = (r->r_symbolnum & (1 << 27)) >> 27;
-    int baserel = (r->r_symbolnum & (1 << 28)) >> 28;
-    int jmptable = (r->r_symbolnum & (1 << 29)) >> 29;
-    int rel = (r->r_symbolnum & (1 << 30)) >> 30;
-    int copy = (r->r_symbolnum & (1 << 31)) >> 31;
+    int32_t symbolnum = r->r_symbolnum & 0xffffff;
+    int32_t pcrel = (r->r_symbolnum & (1L << 24)) >> 24;
+    int32_t ext = (r->r_symbolnum & (1L << 27)) >> 27;
+    int32_t baserel = (r->r_symbolnum & (1L << 28)) >> 28;
+    int32_t jmptable = (r->r_symbolnum & (1L << 29)) >> 29;
+    int32_t rel = (r->r_symbolnum & (1L << 30)) >> 30;
+    int32_t copy = (r->r_symbolnum & (1L << 31)) >> 31;
 
-    int length = (r->r_symbolnum & (3 << 25)) >> 25;
+    int32_t length = (r->r_symbolnum & (3L << 25)) >> 25;
     
     switch (length) {
     
@@ -556,7 +559,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
     }
     
     p = (unsigned char *) output + header_size + r->r_address;
-    opcode = *(int *) (p - 1) & 0xff;
+    opcode = *(int32_t *) (p - 1) & 0xff;
     
     symbol = &object->symtab[symbolnum];
     
@@ -566,7 +569,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
         char *temp = xstrdup (symname);
         
         struct aout_object *symobj;
-        int symidx;
+        int32_t symidx;
         
         if (strstart ("DGROUP", (const char **) &temp)) {
         
@@ -592,7 +595,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
     if (pcrel) {
     
         if (result == 0) {
-            result = (int) symbol->n_value - (r->r_address + length);
+            result = (long) symbol->n_value - (r->r_address + length);
         }
     
     } else {
@@ -613,13 +616,13 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
         
         if (opcode == 0x9A) {
         
-            unsigned int temp = *(int *) ((char *) output + header_size + r->r_address);
+            uint32_t temp = *(int32_t *) ((char *) output + header_size + r->r_address);
             
             result = ((temp >> 16) & 0xffff) * 16;
             result += temp & 0xffff;
         
         } else if (result == 0) {
-            result = *(int *) ((char *) output + header_size + r->r_address);
+            result = *(int32_t *) ((char *) output + header_size + r->r_address);
         }
         
         if (ext || dgroup) {
@@ -659,9 +662,8 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
     
     if (opcode == 0x9A) {
     
-        int i;
+        int32_t i;
         
-        /*if (result >= 32767) {*/
         if (length == 4) {
         
             if (state->format == LD_FORMAT_BINARY || state->format == LD_FORMAT_MSDOS) {
@@ -691,9 +693,9 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
     
     } else if (state->format == LD_FORMAT_MSDOS_MZ) {
     
-        int i;
+        int32_t i;
         
-        if (symbolnum == 6) {
+        if (symbolnum == 6 || symbolnum == 8) {
             result -= state->text_size;
         } else if (length == 4) {
             result &= 0xffffffff;
@@ -721,7 +723,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
 
 static int glue (struct aout_object *object) {
 
-    int i, err = 0;
+    int32_t i, err = 0;
     
     for (i = 0; i < object->trelocs_count; i++) {
     
@@ -772,7 +774,7 @@ static int init_aout_object (void) {
 
 }
 
-static int write_aout_object (FILE *ofp, unsigned int a_entry) {
+static int write_aout_object (FILE *ofp, uint32_t a_entry) {
 
     aout_hdr->a_info = state->impure ? OMAGIC : ZMAGIC;
     aout_hdr->a_text = state->text_size;
@@ -837,16 +839,16 @@ static int init_msdos_mz_object (void) {
 
 }
 
-static int write_msdos_mz_object (FILE *ofp, unsigned int entry) {
+static int write_msdos_mz_object (FILE *ofp, uint32_t entry) {
 
     /*unsigned short ibss_addr = ((char *) output - (char *) text) + state->text_size;*/
-    size_t ibss_addr = output_size;
-    size_t ibss_size = state->bss_size;
+    unsigned long ibss_addr = output_size;
+    unsigned long ibss_size = state->bss_size;
     
-    size_t stack_addr, stack_size;
+    unsigned long stack_addr, stack_size;
     
-    unsigned int reloc_sz = 0;
-    int i;
+    uint32_t reloc_sz = 0;
+    int32_t i;
     
     /*for (i = 0; i < tgr.relocations_count; ++i) {
     
@@ -905,7 +907,7 @@ static int write_msdos_mz_object (FILE *ofp, unsigned int entry) {
         for (i = 0; i < tgr.relocations_count; ++i) {
         
             struct relocation_info *r = &tgr.relocations[i];
-            unsigned int offset = (i * 4);
+            uint32_t offset = (i * 4);
             
             if (r->r_address >= 65535) {
             
@@ -938,7 +940,7 @@ static int write_msdos_mz_object (FILE *ofp, unsigned int entry) {
 int create_executable_from_aout_objects (void) {
 
     FILE *ofp;
-    size_t i;
+    unsigned long i;
     
     int err = 0;
     
@@ -1032,7 +1034,7 @@ int create_executable_from_aout_objects (void) {
     
     if (state->format == LD_FORMAT_I386_AOUT) {
     
-        unsigned int a_entry = get_entry ();
+        uint32_t a_entry = get_entry ();
         
         if ((err = write_aout_object (ofp, a_entry))) {
         

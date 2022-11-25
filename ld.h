@@ -14,13 +14,14 @@ enum {
 };
 
 #include    <stddef.h>
+#include    <stdint.h>
 
 struct aout_object {
 
     const char *filename;
     void *raw;
     
-    size_t size;
+    unsigned long size;
     
     struct aout_exec *header;
     struct relocation_info *trelocs, *drelocs;
@@ -28,8 +29,8 @@ struct aout_object {
     struct nlist *symtab;
     char *strtab;
     
-    int symtab_count, trelocs_count, drelocs_count;
-    unsigned int text_slide, data_slide, bss_slide;
+    int32_t symtab_count, trelocs_count, drelocs_count;
+    uint32_t text_slide, data_slide, bss_slide;
 
 
 };
@@ -39,7 +40,7 @@ struct coff_object {
     const char *filename;
     void *raw;
     
-    size_t size;
+    unsigned long size;
     struct coff_header *header;
 
 };
@@ -47,19 +48,19 @@ struct coff_object {
 struct ld_state {
 
     const char **files;
-    size_t nb_files;
+    unsigned long nb_files;
     
     const char *entry, *mapfile, *outfile;
     int code_offset, format, impure;
     
     struct aout_object **aout_objs;
-    size_t nb_aout_objs;
+    unsigned long nb_aout_objs;
     
     struct coff_object **coff_objs;
-    size_t nb_coff_objs;
+    unsigned long nb_coff_objs;
     
-    size_t text_size, data_size, bss_size;
-    size_t stack_size;
+    unsigned long text_size, data_size, bss_size;
+    unsigned long stack_size;
 
 };
 

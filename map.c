@@ -2,6 +2,7 @@
  * @file            map.c
  *****************************************************************************/
 #include    <stddef.h>
+#include    <stdint.h>
 #include    <stdio.h>
 #include    <stdlib.h>
 #include    <string.h>
@@ -11,20 +12,20 @@
 #include    "ld.h"
 #include    "map.h"
 
-static int map_text_start = 0;
-static int map_data_start = 0;
-static int map_bss_start = 0;
+static int32_t map_text_start = 0;
+static int32_t map_data_start = 0;
+static int32_t map_bss_start = 0;
 
-static int map_text_size = 0;
-static int map_data_size = 0;
-static int map_bss_size = 0;
+static int32_t map_text_size = 0;
+static int32_t map_data_size = 0;
+static int32_t map_bss_size = 0;
 
-struct section_symbol { unsigned int value; };
+struct section_symbol { uint32_t value; };
 
 struct map_object {
 
     struct hashtab *bss_section, *data_section, *text_section;
-    unsigned int a_bss, a_data, a_text, idx;
+    uint32_t a_bss, a_data, a_text, idx;
 
 };
 
@@ -32,7 +33,7 @@ static struct hashtab map_objects = { 0 };
 
 static void sort_section_symbols (struct hashtab *section) {
 
-    size_t i, j;
+    unsigned long i, j;
     
     if (section->count > 0) {
     
@@ -86,7 +87,7 @@ static void sort_section_symbols (struct hashtab *section) {
 
 }
 
-static void add_section_symbol (struct hashtab *section, const char *symname, unsigned int value) {
+static void add_section_symbol (struct hashtab *section, const char *symname, uint32_t value) {
 
     struct hashtab_name *name = hashtab_alloc_name (symname);
     struct section_symbol *symbol;
@@ -106,7 +107,7 @@ static void add_section_symbol (struct hashtab *section, const char *symname, un
 
 }
 
-void add_map_object (const char *filename, unsigned int a_bss, unsigned int a_data, unsigned int a_text) {
+void add_map_object (const char *filename, uint32_t a_bss, uint32_t a_data, uint32_t a_text) {
 
     struct hashtab_name *name = hashtab_alloc_name (filename);
     struct map_object *object;
@@ -132,7 +133,7 @@ void add_map_object (const char *filename, unsigned int a_bss, unsigned int a_da
 
 }
 
-void add_map_bss_symbol (const char *filename, const char *symname, unsigned int value) {
+void add_map_bss_symbol (const char *filename, const char *symname, uint32_t value) {
 
     struct hashtab_name *name = hashtab_alloc_name (filename);
     struct map_object *object;
@@ -155,7 +156,7 @@ void add_map_bss_symbol (const char *filename, const char *symname, unsigned int
 
 }
 
-void add_map_data_symbol (const char *filename, const char *symname, unsigned int value) {
+void add_map_data_symbol (const char *filename, const char *symname, uint32_t value) {
 
     struct hashtab_name *name = hashtab_alloc_name (filename);
     struct map_object *object;
@@ -178,7 +179,7 @@ void add_map_data_symbol (const char *filename, const char *symname, unsigned in
 
 }
 
-void add_map_text_symbol (const char *filename, const char *symname, unsigned int value) {
+void add_map_text_symbol (const char *filename, const char *symname, uint32_t value) {
 
     struct hashtab_name *name = hashtab_alloc_name (filename);
     struct map_object *object;
@@ -213,7 +214,7 @@ void generate_map (void) {
     int has_bss = 0, has_data = 0, has_text = 0;
     int has_header = 0, has_newline = 0;
     
-    size_t i, j;
+    unsigned long i, j;
     
     if (!state->mapfile) {
         return;
@@ -493,7 +494,7 @@ void generate_map (void) {
 
 }
 
-void set_map_sections_size (unsigned int text_size, unsigned int data_size, unsigned int bss_size) {
+void set_map_sections_size (uint32_t text_size, uint32_t data_size, uint32_t bss_size) {
 
     map_text_size = text_size;
     map_data_size = data_size;
@@ -501,7 +502,7 @@ void set_map_sections_size (unsigned int text_size, unsigned int data_size, unsi
 
 }
 
-void set_map_sections_start (unsigned int text_start, unsigned int data_start, unsigned int bss_start) {
+void set_map_sections_start (uint32_t text_start, uint32_t data_start, uint32_t bss_start) {
 
     map_text_start = text_start;
     map_data_start = data_start;

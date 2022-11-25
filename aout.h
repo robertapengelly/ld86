@@ -5,19 +5,20 @@
 #define     _AOUT_H
 
 #include    <stddef.h>
+#include    <stdint.h>
 
 #define     N_GETMAGIC(exec)            ((exec).a_info & 0xffff)
 
 struct aout_exec {
 
-    unsigned int a_info;
-    unsigned int a_text;
-    unsigned int a_data;
-    unsigned int a_bss;
-    unsigned int a_syms;
-    unsigned int a_entry;
-    unsigned int a_trsize;
-    unsigned int a_drsize;
+    uint32_t a_info;
+    uint32_t a_text;
+    uint32_t a_data;
+    uint32_t a_bss;
+    uint32_t a_syms;
+    uint32_t a_entry;
+    uint32_t a_trsize;
+    uint32_t a_drsize;
 
 };
 
@@ -29,21 +30,21 @@ struct aout_exec {
 /* Relocation entry. */
 struct relocation_info {
 
-    int r_address;
-    unsigned int r_symbolnum;
+    int32_t r_address;
+    uint32_t r_symbolnum;
 
 };
 
 /* Symbol table entry. */
 struct nlist {
 
-    int n_strx;
+    int32_t n_strx;
     unsigned char n_type;
     
     char n_other;
     short n_desc;
     
-    unsigned int n_value;
+    uint32_t n_value;
 
 };
 

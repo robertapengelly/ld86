@@ -141,7 +141,7 @@ int xstrcasecmp (const char *s1, const char *s2) {
 
 }
 
-void *xmalloc (size_t size) {
+void *xmalloc (unsigned long size) {
 
     void *ptr = malloc (size);
     
@@ -157,7 +157,7 @@ void *xmalloc (size_t size) {
 
 }
 
-void *xrealloc (void *ptr, size_t size) {
+void *xrealloc (void *ptr, unsigned long size) {
 
     void *new_ptr = realloc (ptr, size);
     
@@ -172,7 +172,7 @@ void *xrealloc (void *ptr, size_t size) {
 
 }
 
-void dynarray_add (void *ptab, size_t *nb_ptr, void *data) {
+void dynarray_add (void *ptab, unsigned long *nb_ptr, void *data) {
 
     int nb, nb_alloc;
     void **pp;
@@ -390,7 +390,7 @@ void parse_args (int *pargc, char ***pargv, int optind) {
                 
                 }
                 
-                state->stack_size = (size_t ) conversion;
+                state->stack_size = (unsigned long ) conversion;
                 break;
             
             }

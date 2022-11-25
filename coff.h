@@ -5,18 +5,19 @@
 #define     _COFF_H
 
 #include    <stddef.h>
+#include    <stdint.h>
 
 struct coff_header {
 
-    unsigned short Machine;
-    unsigned short NumberOfSections;
+    uint16_t Machine;
+    uint16_t NumberOfSections;
     
-    unsigned int TimeDateStamp;
-    unsigned int PointerToSymbolTable;
-    unsigned int NumberOfSymbols;
+    uint32_t TimeDateStamp;
+    uint32_t PointerToSymbolTable;
+    uint32_t NumberOfSymbols;
     
-    unsigned short SizeOfOptionalHeader;
-    unsigned short Characteristics;
+    uint16_t SizeOfOptionalHeader;
+    uint16_t Characteristics;
 
 };
 

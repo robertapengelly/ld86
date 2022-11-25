@@ -2,6 +2,7 @@
  * @file            ld.c
  *****************************************************************************/
 #include    <stdio.h>
+#include    <stdint.h>
 #include    <stdlib.h>
 #include    <string.h>
 
@@ -15,9 +16,9 @@
 struct ld_state *state = 0;
 const char *program_name = 0;
 
-static unsigned int conv_dec (char *str, int max) {
+static uint32_t conv_dec (char *str, int32_t max) {
 
-    unsigned int value = 0;
+    uint32_t value = 0;
     
     while (*str != ' ' && max-- > 0) {
     
@@ -30,12 +31,12 @@ static unsigned int conv_dec (char *str, int max) {
 
 }
 
-/*static int process_coff (void *obj, size_t sz, const char *fname, int quiet) {
+/*static int process_coff (void *obj, unsigned long sz, const char *fname, int quiet) {
 
     struct coff_header *hdr = obj;
     
     struct coff_object *data_obj;
-    size_t i;
+    unsigned long i;
     
     if (hdr->Machine != IMAGE_FILE_MACHINE_I386) {
     
@@ -97,7 +98,7 @@ static unsigned int conv_dec (char *str, int max) {
 
 }*/
 
-static int process_aout (void *obj, size_t sz, const char *fname, int quiet) {
+static int process_aout (void *obj, unsigned long sz, const char *fname, int quiet) {
 
     struct aout_exec *hdr = obj;
     
@@ -107,11 +108,11 @@ static int process_aout (void *obj, size_t sz, const char *fname, int quiet) {
     struct relocation_info *trelocs;
     struct relocation_info *drelocs;
     
-    int symtab_count, trelocs_count, drelocs_count;
-    unsigned int symtab_off, strtab_off, trelocs_off, drelocs_off;
+    int32_t symtab_count, trelocs_count, drelocs_count;
+    uint32_t symtab_off, strtab_off, trelocs_off, drelocs_off;
     
     char *strtab;
-    size_t i;
+    unsigned long i;
     
     if (N_GETMAGIC (*hdr) != OMAGIC) {
     
@@ -224,7 +225,7 @@ static int process_archive (FILE *ar_file, const char *root_fname) {
         struct ar_header hdr;
         
         int err, i;
-        unsigned int sz, sz_aligned;
+        uint32_t sz, sz_aligned;
         
         if (fread (&hdr, sizeof (hdr), 1, ar_file) != 1) {
         
@@ -278,7 +279,7 @@ static int process_archive (FILE *ar_file, const char *root_fname) {
         
         if (fname) {
         
-            size_t len = strlen (root_fname) + 1 + strlen (fname) + 2;
+            unsigned long len = strlen (root_fname) + 1 + strlen (fname) + 2;
             
             if ((path = malloc (len)) == NULL) {
             
@@ -419,7 +420,7 @@ static int process_file (const char *fname) {
 
 int main (int argc, char **argv) {
 
-    size_t i;
+    unsigned long i;
     int err = EXIT_SUCCESS;
     
     if (argc && *argv) {
