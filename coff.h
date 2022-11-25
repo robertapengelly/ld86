@@ -5,7 +5,6 @@
 #define     _COFF_H
 
 #include    <stddef.h>
-#include    <stdint.h>
 
 struct coff_header {
 

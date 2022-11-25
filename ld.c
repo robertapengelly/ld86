@@ -2,7 +2,6 @@
  * @file            ld.c
  *****************************************************************************/
 #include    <stdio.h>
-#include    <stdint.h>
 #include    <stdlib.h>
 #include    <string.h>
 
@@ -12,6 +11,7 @@
 #include    "ld.h"
 #include    "lib.h"
 #include    "report.h"
+#include    "types.h"
 
 struct ld_state *state = 0;
 const char *program_name = 0;

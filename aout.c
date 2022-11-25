@@ -3,7 +3,6 @@
  *****************************************************************************/
 #include    <limits.h>
 #include    <stddef.h>
-#include    <stdint.h>
 #include    <stdio.h>
 #include    <stdlib.h>
 #include    <string.h>
@@ -14,6 +13,7 @@
 #include    "map.h"
 #include    "msdos.h"
 #include    "report.h"
+#include    "types.h"
 
 static struct aout_exec *aout_hdr;
 static struct msdos_header *msdos_hdr;

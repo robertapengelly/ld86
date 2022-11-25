@@ -5,7 +5,6 @@
 #define     _LIB_H
 
 #include    <stddef.h>
-#include    <stdint.h>
 
 char *xstrdup (const char *str);
 

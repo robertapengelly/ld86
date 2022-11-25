@@ -14,7 +14,8 @@ enum {
 };
 
 #include    <stddef.h>
-#include    <stdint.h>
+
+#include    "types.h"
 
 struct aout_object {
 

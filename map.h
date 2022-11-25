@@ -4,8 +4,6 @@
 #ifndef     _MAP_H
 #define     _MAP_H
 
-#include    <stdint.h>
-
 void add_map_object (const char *filename, uint32_t a_bss, uint32_t a_data, uint32_t a_text);
 
 void add_map_bss_symbol (const char *filename, const char *symname, uint32_t value);

@@ -5,7 +5,8 @@
 #define     _AOUT_H
 
 #include    <stddef.h>
-#include    <stdint.h>
+
+#include    "types.h"
 
 #define     N_GETMAGIC(exec)            ((exec).a_info & 0xffff)
 
