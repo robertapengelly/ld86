@@ -113,46 +113,38 @@ static void number_to_chars (unsigned char *p, unsigned long number, unsigned lo
 
 }
 
-/*static void fix_offset (struct relocation_info r) {
+static unsigned long fix_offset (struct relocation_info r, unsigned long result) {
 
-    unsigned int zapdata = ((char *) text - (char *) output);
-    unsigned int orig;
-    
-    unsigned char *p;
-    int length;
+    uint32_t zapdata = ((char *) text - (char *) output);
     
     if (((r.r_symbolnum >> 24) & 0xff) != N_TEXT) {
-        return;
+        return result;
     }
     
-    p = (unsigned char *) text + r.r_address;
-    length = (r.r_symbolnum & (3 << 25)) >> 25;
-    
-    memcpy (&orig, p, length);
-    orig += zapdata;
+    result += zapdata;
     
     if (state->format == LD_FORMAT_I386_PE) {
     
-        unsigned int data_offset = ((char *) data - (char *) output);
+        uint32_t data_offset = ((char *) data - (char *) output);
         
-        if (orig >= data_offset) {
+        if (result >= data_offset) {
         
-            orig += ALIGN_UP (zapdata, SECTION_ALIGNMENT);
-            orig += ALIGN_UP (state->text_size, SECTION_ALIGNMENT);
+            result += ALIGN_UP (zapdata, SECTION_ALIGNMENT);
+            result += ALIGN_UP (state->text_size, SECTION_ALIGNMENT);
             
-            orig -= zapdata;
+            result -= zapdata;
         
         } else {
-            orig += ALIGN_UP (zapdata, SECTION_ALIGNMENT);
+            result += ALIGN_UP (zapdata, SECTION_ALIGNMENT);
         }
         
-        orig -= zapdata;
+        result -= zapdata;
     
     }
     
-    memcpy (p, &orig, length);
+    return result;
 
-}*/
+}
 
 static void fix_offsets (void) {
 
@@ -609,7 +601,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
                 new_relocation.r_address -= state->text_size;
             }
             
-            new_relocation.r_symbolnum = r->r_symbolnum & (3 << 25);
+            new_relocation.r_symbolnum = r->r_symbolnum & (3L << 25);
             add_relocation (is_data ? &dgr : &tgr, &new_relocation);
         
         }
@@ -664,7 +656,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
     
         int32_t i;
         
-        if (length == 4) {
+        if (result >= 65535) {
         
             if (state->format == LD_FORMAT_BINARY || state->format == LD_FORMAT_MSDOS) {
             
@@ -672,17 +664,48 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
                 return 1;
             
             }
-        
-        }
-        
-        number_to_chars (p, result % 16, 2);
-        number_to_chars (p + 2, result / 16, 2);
-        
-        for (i = 0; i < tgr.relocations_count; ++i) {
-        
-            if (tgr.relocations[i].r_address == r->r_address) {
-                tgr.relocations[i].r_address += 2;
+            
+            number_to_chars (p, result % 16, 2);
+            number_to_chars (p + 2, result / 16, 2);
+            
+            for (i = 0; i < tgr.relocations_count; ++i) {
+            
+                if (tgr.relocations[i].r_address == r->r_address) {
+                    tgr.relocations[i].r_address += 2;
+                }
+            
             }
+        
+        } else {
+        
+            result -= header_size;
+            
+            if (state->format == LD_FORMAT_MSDOS_MZ) {
+            
+                *(p - 1) = 0x0E;
+                
+                p++;
+                r->r_address++;
+            
+            }
+            
+            for (i = 0; i < tgr.relocations_count; ++i) {
+            
+                if (tgr.relocations[i].r_address + 1 == r->r_address) {
+                
+                    tgr.relocations[i].r_address++;
+                    
+                    result = fix_offset (tgr.relocations[i], result);
+                    remove_relocation (&tgr, tgr.relocations[i]);
+                
+                }
+            
+            }
+            
+            number_to_chars (p, result - r->r_address - 2, 2);
+            *(p - 1) = 0xE8;
+            
+            memset (p + 2, 0x90, 1);
         
         }
     
