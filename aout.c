@@ -714,12 +714,15 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
         result -= header_size;
         number_to_chars (p, result / 16, 2);
     
-    } else if (state->format == LD_FORMAT_MSDOS_MZ) {
+    } else/* if (state->format == LD_FORMAT_MSDOS_MZ)*/ {
     
         int32_t i;
         
-        if (symbolnum == 6 || symbolnum == 8) {
-            result -= state->text_size;
+        if ((symbol->n_type & N_TYPE) == N_BSS || (symbol->n_type & N_TYPE) == N_DATA) {
+        
+            unsigned long addr = ((char *) data - (char *) output);
+            result -= addr & 0xfffffff0;
+        
         } else if (length == 4) {
             result &= 0xffffffff;
         } else if (length == 2) {
@@ -729,16 +732,22 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
         for (i = 0; i < tgr.relocations_count; ++i) {
         
             if (tgr.relocations[i].r_address == r->r_address) {
+            
+                if ((symbol->n_type & N_TYPE) != N_BSS && (symbol->n_type & N_TYPE) != N_DATA) {
+                    result = fix_offset (tgr.relocations[i], result);
+                }
+                
                 remove_relocation (&tgr, tgr.relocations[i]);
+            
             }
         
         }
         
         number_to_chars (p, result, length);
     
-    } else {
+    }/* else {
         number_to_chars (p, result, length);
-    }
+    }*/
     
     return 0;
 
@@ -912,9 +921,17 @@ static int write_msdos_mz_object (FILE *ofp, uint32_t entry) {
     if (tgr.relocations_count > 0) {
     
         char *relocs;
+        void *temp;
         
-        output = xrealloc (output, output_size + reloc_sz);
-        memcpy ((char *) output + header_size + reloc_sz, (char *) output + header_size, output_size - header_size);
+        if ((temp = malloc (output_size + reloc_sz)) == NULL) {
+            return 1;
+        }
+        
+        memcpy ((char *) temp, (char *) output, header_size);
+        memcpy ((char *) temp + header_size + reloc_sz, (char *) output + header_size, output_size - header_size);
+        
+        free (output);
+        output = temp;
         
         relocs = (char *) output + header_size;
         text = (char *) output + header_size + reloc_sz;
