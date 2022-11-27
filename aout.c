@@ -718,15 +718,25 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
     
         int32_t i;
         
-        if ((symbol->n_type & N_TYPE) == N_BSS || (symbol->n_type & N_TYPE) == N_DATA) {
-        
-            unsigned long addr = ((char *) data - (char *) output);
-            result -= addr & 0xfffffff0;
-        
-        } else if (length == 4) {
+        if (length == 4) {
             result &= 0xffffffff;
         } else if (length == 2) {
             result &= 0xffff;
+        }
+        
+        if ((symbol->n_type & N_TYPE) == N_BSS || (symbol->n_type & N_TYPE) == N_DATA) {
+        
+            unsigned long addr = (((char *) data - (char *) output) - header_size) & 0xfffffff0;
+            result -= addr;
+        
+        } else {
+        
+            unsigned long addr = ((char *) data - (char *) output) - header_size;;
+            
+            if (result >= addr) {
+                result -= (addr & 0xfffffff0);
+            }
+        
         }
         
         for (i = 0; i < tgr.relocations_count; ++i) {
@@ -892,7 +902,7 @@ static int write_msdos_mz_object (FILE *ofp, uint32_t entry) {
     
     }*/
     
-    reloc_sz = ALIGN_UP (tgr.relocations_count * 4, 16);
+    reloc_sz = ALIGN_UP (tgr.relocations_count * 4, 32);
     ibss_addr += reloc_sz;
     
     stack_addr = ibss_addr + ibss_size;
