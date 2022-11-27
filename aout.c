@@ -37,7 +37,7 @@ static struct gr dgr = { 0, 64, NULL };
 
 static int get_symbol (struct aout_object **obj_out, int32_t *index, const char *name, int quiet) {
 
-    unsigned long object_i;
+    long object_i;
     int32_t symbol_i;
     
     for (object_i = 0; object_i < state->nb_aout_objs; ++object_i) {
@@ -911,15 +911,10 @@ static int write_msdos_mz_object (FILE *ofp, uint32_t entry) {
     
     if (tgr.relocations_count > 0) {
     
-        unsigned char *temp = xmalloc (output_size);
         char *relocs;
         
-        memcpy (temp, (char *) output + header_size, output_size - header_size);
-        
         output = xrealloc (output, output_size + reloc_sz);
-        memcpy ((char *) output + header_size + reloc_sz, temp, output_size - header_size);
-        
-        free (temp);
+        memcpy ((char *) output + header_size + reloc_sz, (char *) output + header_size, output_size - header_size);
         
         relocs = (char *) output + header_size;
         text = (char *) output + header_size + reloc_sz;
@@ -962,10 +957,11 @@ static int write_msdos_mz_object (FILE *ofp, uint32_t entry) {
 
 int create_executable_from_aout_objects (void) {
 
+    struct aout_object *object;
     FILE *ofp;
-    unsigned long i;
     
     int err = 0;
+    long i;
     
     if (state->format == LD_FORMAT_I386_AOUT) {
     
@@ -1039,14 +1035,31 @@ int create_executable_from_aout_objects (void) {
     
     if (err) { return EXIT_FAILURE; }
     
-    for (i = 0; i < state->nb_aout_objs; ++i) {
-        init_map (state->aout_objs[i]);
+    for (i = state->nb_aout_objs - 1; i >= 0; i--) {
+    
+        if ((object = state->aout_objs[i]) == NULL) {
+            return EXIT_FAILURE;
+        }
+        
+        if (state->mapfile) {
+            init_map (object);
+        }
+        
+        free (object->raw);
+        free (object);
+        
+        state->nb_aout_objs--;
+    
     }
     
-    set_map_sections_size (state->text_size, state->data_size, state->bss_size);
-    set_map_sections_start (0, state->text_size, state->text_size + state->data_size);
+    if (state->mapfile) {
     
-    generate_map ();
+        set_map_sections_size (state->text_size, state->data_size, state->bss_size);
+        set_map_sections_start (0, state->text_size, state->text_size + state->data_size);
+        
+        generate_map ();
+    
+    }
     
     if ((ofp = fopen (state->outfile, "wb")) == NULL) {
     

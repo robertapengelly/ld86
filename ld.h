@@ -49,16 +49,16 @@ struct coff_object {
 struct ld_state {
 
     const char **files;
-    unsigned long nb_files;
+    long nb_files;
     
     const char *entry, *mapfile, *outfile;
     int code_offset, format, impure;
     
     struct aout_object **aout_objs;
-    unsigned long nb_aout_objs;
+    long nb_aout_objs;
     
     struct coff_object **coff_objs;
-    unsigned long nb_coff_objs;
+    long nb_coff_objs;
     
     unsigned long text_size, data_size, bss_size;
     unsigned long stack_size;

@@ -94,14 +94,20 @@ static void add_section_symbol (struct hashtab *section, const char *symname, ui
     if ((symbol = hashtab_get (section, name)) == NULL) {
     
         if ((symbol = malloc (sizeof (*symbol))) == NULL) {
+        
+            free (name);
             return;
+        
         }
         
         symbol->value = value;
         hashtab_put (section, name, symbol);
     
     } else {
+    
+        free (name);
         symbol->value = value;
+    
     }
 
 }
@@ -114,7 +120,10 @@ void add_map_object (const char *filename, uint32_t a_bss, uint32_t a_data, uint
     if (hashtab_get (&map_objects, name) == NULL) {
     
         if ((object = malloc (sizeof (*object))) == NULL) {
+        
+            free (name);
             return;
+        
         }
         
         object->a_bss  = a_bss;
@@ -128,6 +137,8 @@ void add_map_object (const char *filename, uint32_t a_bss, uint32_t a_data, uint
         object->idx = map_objects.count;
         hashtab_put (&map_objects, name, object);
     
+    } else {
+        free (name);
     }
 
 }
@@ -138,8 +149,13 @@ void add_map_bss_symbol (const char *filename, const char *symname, uint32_t val
     struct map_object *object;
     
     if ((object = hashtab_get (&map_objects, name)) == NULL) {
+    
+        free (name);
         return;
+    
     }
+    
+    free (name);
     
     if (object->bss_section == NULL) {
     
@@ -161,8 +177,13 @@ void add_map_data_symbol (const char *filename, const char *symname, uint32_t va
     struct map_object *object;
     
     if ((object = hashtab_get (&map_objects, name)) == NULL) {
+    
+        free (name);
         return;
+    
     }
+    
+    free (name);
     
     if (object->data_section == NULL) {
     
@@ -184,8 +205,13 @@ void add_map_text_symbol (const char *filename, const char *symname, uint32_t va
     struct map_object *object;
     
     if ((object = hashtab_get (&map_objects, name)) == NULL) {
+    
+        free (name);
         return;
+    
     }
+    
+    free (name);
     
     if (object->text_section == NULL) {
     
@@ -205,8 +231,8 @@ void generate_map (void) {
 
     FILE *map_ofp = stdout;
     
-    struct hashtab *table;
     struct hashtab_entry *entry;
+    struct hashtab *table;
     
     struct map_object *object;
     
@@ -214,10 +240,6 @@ void generate_map (void) {
     int has_header = 0, has_newline = 0;
     
     unsigned long i, j;
-    
-    if (!state->mapfile) {
-        return;
-    }
     
     if (strcmp (state->mapfile, "") != 0) {
     

@@ -172,7 +172,7 @@ void *xrealloc (void *ptr, unsigned long size) {
 
 }
 
-void dynarray_add (void *ptab, unsigned long *nb_ptr, void *data) {
+void dynarray_add (void *ptab, long *nb_ptr, void *data) {
 
     int32_t nb, nb_alloc;
     void **pp;

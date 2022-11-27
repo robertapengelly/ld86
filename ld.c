@@ -112,7 +112,7 @@ static int process_aout (void *obj, unsigned long sz, const char *fname, int qui
     uint32_t symtab_off, strtab_off, trelocs_off, drelocs_off;
     
     char *strtab;
-    unsigned long i;
+    long i;
     
     if (N_GETMAGIC (*hdr) != OMAGIC) {
     
@@ -317,6 +317,7 @@ static int process_archive (FILE *ar_file, const char *root_fname) {
     
     }
     
+    free (fname);
     return 0;
 
 }
@@ -420,8 +421,8 @@ static int process_file (const char *fname) {
 
 int main (int argc, char **argv) {
 
-    unsigned long i;
     int err = EXIT_SUCCESS;
+    long i;
     
     if (argc && *argv) {
     
