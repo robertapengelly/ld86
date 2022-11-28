@@ -990,6 +990,8 @@ int create_executable_from_aout_objects (void) {
     int err = 0;
     long i;
     
+    uint32_t a_entry = 0;
+    
     if (state->format == LD_FORMAT_I386_AOUT) {
     
         if ((err = init_aout_object ())) {
@@ -1062,6 +1064,10 @@ int create_executable_from_aout_objects (void) {
     
     if (err) { return EXIT_FAILURE; }
     
+    if (state->format == LD_FORMAT_I386_AOUT || state->format == LD_FORMAT_MSDOS_MZ) {
+        a_entry = get_entry ();
+    }
+    
     for (i = state->nb_aout_objs - 1; i >= 0; i--) {
     
         if ((object = state->aout_objs[i]) == NULL) {
@@ -1097,8 +1103,6 @@ int create_executable_from_aout_objects (void) {
     
     if (state->format == LD_FORMAT_I386_AOUT) {
     
-        uint32_t a_entry = get_entry ();
-        
         if ((err = write_aout_object (ofp, a_entry))) {
         
             report_at (program_name, 0, REPORT_ERROR, "failed to write a.out object");
@@ -1125,7 +1129,7 @@ int create_executable_from_aout_objects (void) {
     
         /*fix_offsets ();*/
         
-        if ((err = write_msdos_mz_object (ofp, get_entry ()))) {
+        if ((err = write_msdos_mz_object (ofp, a_entry))) {
         
             report_at (program_name, 0, REPORT_ERROR, "failed to write msdos object");
             fclose (ofp);
