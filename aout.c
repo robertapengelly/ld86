@@ -726,7 +726,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
             result &= 0xffff;
         }
         
-        if (result >= output_size - state->data_size) {
+        if (result >= data_addr) {
             result -= (data_addr & 0xfffffff0);
         } else {
             add_relocation (&rgr, r);
