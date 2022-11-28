@@ -982,8 +982,6 @@ static int write_msdos_mz_object (FILE *ofp, uint32_t entry) {
                 result &= 0xff;
             }
             
-            report_at (NULL, 0, REPORT_INTERNAL_ERROR, "%d, %x, %lx", length, r->r_address, result);
-            
             result += header_size;
             result += reloc_sz;
             
