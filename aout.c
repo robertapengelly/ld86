@@ -33,7 +33,6 @@ struct gr {
 
 static struct gr tgr = { 0, 64, NULL };
 static struct gr dgr = { 0, 64, NULL };
-static struct gr rgr = { 0, 64, NULL };
 
 
 static int get_symbol (struct aout_object **obj_out, int32_t *index, const char *name, int quiet) {
@@ -150,21 +149,39 @@ static unsigned long fix_offset (struct relocation_info r, unsigned long result)
 static void fix_offsets (void) {
 
     uint32_t zapdata = ((char *) text - (char *) output);
-    unsigned char *p;
-    
     int32_t i, length;
     
     for (i = 0; i < tgr.relocations_count; i++) {
     
         struct relocation_info *r = &tgr.relocations[i];
+        
+        unsigned char *p = (unsigned char *) text + r->r_address;
         uint32_t orig = 0;
         
         if (((r->r_symbolnum >> 24) & 0xff) != N_TEXT) {
             continue;
         }
         
-        p = (unsigned char *) text + r->r_address;
-        length = (r->r_symbolnum & (3 << 25)) >> 25;
+        length = (r->r_symbolnum & (3L << 25)) >> 25;
+        
+        switch (length) {
+        
+            case 0:
+            
+                length = 1;
+                break;
+            
+            case 1:
+            
+                length = 2;
+                break;
+            
+            case 2:
+            
+                length = 4;
+                break;
+        
+        }
         
         if (*(p - 1) == 0x9A) {
         
@@ -218,7 +235,26 @@ static void fix_offsets (void) {
             continue;
         }
         
-        length = (r->r_symbolnum & (3 << 25)) >> 25;
+        length = (r->r_symbolnum & (3L << 25)) >> 25;
+        
+        switch (length) {
+        
+            case 0:
+            
+                length = 1;
+                break;
+            
+            case 1:
+            
+                length = 2;
+                break;
+            
+            case 2:
+            
+                length = 4;
+                break;
+        
+        }
         
         memcpy (&orig, ((char *) data + r->r_address), length);
         orig += zapdata;
@@ -602,7 +638,12 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
                 new_relocation.r_address -= state->text_size;
             }
             
-            new_relocation.r_symbolnum = r->r_symbolnum & (3L << 25);
+            if (dgroup) {
+                new_relocation.r_symbolnum = r->r_symbolnum;
+            } else {
+                new_relocation.r_symbolnum = r->r_symbolnum & (3L << 25);
+            }
+            
             add_relocation (is_data ? &dgr : &tgr, &new_relocation);
         
         }
@@ -690,7 +731,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
             
             }
             
-            for (i = 0; i < tgr.relocations_count; ++i) {
+            for (i = tgr.relocations_count - 1; i >= 0; --i) {
             
                 if (tgr.relocations[i].r_address + 1 == r->r_address) {
                 
@@ -727,17 +768,17 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
         }
         
         if (result >= data_addr) {
+        
             result -= (data_addr & 0xfffffff0);
-        } else {
-            add_relocation (&rgr, r);
-        }
-        
-        for (i = 0; i < tgr.relocations_count; ++i) {
-        
-            if (tgr.relocations[i].r_address == r->r_address) {
             
-                result = fix_offset (tgr.relocations[i], result);
-                remove_relocation (&tgr, tgr.relocations[i]);
+            for (i = tgr.relocations_count - 1; i >= 0; --i) {
+            
+                if (tgr.relocations[i].r_address == r->r_address) {
+                
+                    result = fix_offset (tgr.relocations[i], result);
+                    remove_relocation (&tgr, tgr.relocations[i]);
+                
+                }
             
             }
         
@@ -882,24 +923,16 @@ static int write_msdos_mz_object (FILE *ofp, uint32_t entry) {
     uint32_t reloc_sz = 0;
     int32_t i;
     
-    /*for (i = 0; i < tgr.relocations_count; ++i) {
+    for (i = tgr.relocations_count - 1; i >= 0; --i) {
     
-        struct relocation_info *r = xmalloc (sizeof (*r));
-        
-        r->r_address = tgr.relocations[i].r_address;
-        r->r_symbolnum = tgr.relocations[i].r_symbolnum;
-        
-        add_relocation (&rgr, r);
+        struct relocation_info *r = &tgr.relocations[i];
+        /*report_at (NULL, 0, REPORT_INTERNAL_ERROR, "%x, %x", r->r_address, ((r->r_symbolnum >> 24) & 0xff));*/
         
         if (((r->r_symbolnum >> 24) & 0xff) == N_ABS) {
             remove_relocation (&tgr, *r);
         }
     
     }
-    
-    for (i = 0; i < tgr.relocations_count; ++i) {
-        remove_relocation (&rgr, tgr.relocations[i]);
-    }*/
     
     reloc_sz = ALIGN_UP (tgr.relocations_count * 4, 32);
     ibss_addr += reloc_sz;
@@ -947,47 +980,6 @@ static int write_msdos_mz_object (FILE *ofp, uint32_t entry) {
         
         memset (relocs, 0, reloc_sz);
         output_size += reloc_sz;
-        
-        for (i = 0; i < rgr.relocations_count; ++i) {
-        
-            struct relocation_info *r = &rgr.relocations[i];
-            int32_t length = (r->r_symbolnum & (3L << 25)) >> 25;
-            
-            unsigned long result = *(int32_t *) ((char *) text + r->r_address);
-            
-            switch (length) {
-            
-                case 0:
-                
-                    length = 1;
-                    break;
-                
-                case 1:
-                
-                    length = 2;
-                    break;
-                
-                case 2:
-                
-                    length = 4;
-                    break;
-            
-            }
-            
-            if (length == 4) {
-                result &= 0xffffffff;
-            } else if (length == 2) {
-                result &= 0xffff;
-            } else if (length == 1) {
-                result &= 0xff;
-            }
-            
-            result += header_size;
-            result += reloc_sz;
-            
-            number_to_chars ((unsigned char *) text + r->r_address, result, length);
-        
-        }
         
         for (i = 0; i < tgr.relocations_count; ++i) {
         
