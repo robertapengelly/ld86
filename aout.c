@@ -544,9 +544,7 @@ static int add_relocation (struct gr *gr, struct relocation_info *r) {
 static int relocate (struct aout_object *object, struct relocation_info *r, int is_data) {
 
     struct nlist *symbol;
-    int32_t opcode;
-    
-    unsigned long result = 0;
+    int32_t opcode, result = 0;
     
     unsigned char *p;
     int dgroup = 0;
@@ -656,7 +654,15 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
             result += temp & 0xffff;
         
         } else if (result == 0) {
-            result = *(int32_t *) ((char *) output + header_size + r->r_address);
+        
+            if (length == 4) {
+                result = *(int32_t *) ((char *) output + header_size + r->r_address);
+            } else if (length == 2) {
+                result = *(int16_t *) ((char *) output + header_size + r->r_address);
+            }if (length == 1) {
+                result = *(int8_t *) ((char *) output + header_size + r->r_address);
+            }
+        
         }
         
         if (ext || dgroup) {
@@ -758,14 +764,8 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
     
     } else/* if (state->format == LD_FORMAT_MSDOS_MZ)*/ {
     
-        unsigned long data_addr = ((char *) data - (char *) output) - header_size;
+        int32_t data_addr = ((char *) data - (char *) output) - header_size;
         int32_t i;
-        
-        if (length == 4) {
-            result &= 0xffffffff;
-        } else if (length == 2) {
-            result &= 0xffff;
-        }
         
         if (result >= data_addr) {
         
