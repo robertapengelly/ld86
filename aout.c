@@ -379,11 +379,11 @@ static void init_map (struct aout_object *object) {
         }
         
         if ((sym->n_type & N_TYPE) == N_TEXT) {
-            add_map_text_symbol (object->filename, symname, sym->n_value);
+            add_map_text_symbol (object->filename, xstrdup (symname), sym->n_value);
         } else if ((sym->n_type & N_TYPE) == N_DATA) {
-            add_map_data_symbol (object->filename, symname, sym->n_value);
+            add_map_data_symbol (object->filename, xstrdup (symname), sym->n_value);
         } else if ((sym->n_type & N_TYPE) == N_BSS) {
-            add_map_bss_symbol (object->filename, symname, sym->n_value);
+            add_map_bss_symbol (object->filename, xstrdup (symname), sym->n_value);
         }
     
     }
