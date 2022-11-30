@@ -1100,7 +1100,7 @@ int create_executable_from_aout_objects (void) {
         a_entry = get_entry ();
     }
     
-    for (i = state->nb_aout_objs - 1; i >= 0; i--) {
+    for (i = 0; i < state->nb_aout_objs; i++) {
     
         if ((object = state->aout_objs[i]) == NULL) {
             return EXIT_FAILURE;
@@ -1112,10 +1112,10 @@ int create_executable_from_aout_objects (void) {
         
         free (object->raw);
         free (object);
-        
-        state->nb_aout_objs--;
     
     }
+    
+    state->nb_aout_objs = 0;
     
     if (state->mapfile) {
     
