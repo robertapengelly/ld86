@@ -53,7 +53,7 @@ static void sort_section_symbols (struct hashtab *section) {
             
             symbol1 = (struct section_symbol *) entry1->value;
             
-            for (j = 0; j < section->capacity; j++) {
+            for (j = 0; j < i; j++) {
             
                 if ((entry2 = &section->entries[j]) == NULL) {
                     continue;
@@ -275,7 +275,7 @@ void generate_map (void) {
             
             object1 = (struct map_object *) entry1->value;
             
-            for (j = 0; j < map_objects.capacity; j++) {
+            for (j = 0; j < i; j++) {
             
                 if ((entry2 = &map_objects.entries[j]) == NULL) {
                     continue;
