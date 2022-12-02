@@ -1,7 +1,6 @@
 /******************************************************************************
  * @file            aout.c
  *****************************************************************************/
-#include    <limits.h>
 #include    <stddef.h>
 #include    <stdio.h>
 #include    <stdlib.h>
@@ -14,6 +13,7 @@
 #include    "msdos.h"
 #include    "report.h"
 #include    "types.h"
+#include    "write7x.h"
 
 static struct aout_exec *aout_hdr;
 static struct msdos_header *msdos_hdr;
@@ -47,7 +47,7 @@ static int get_symbol (struct aout_object **obj_out, int32_t *index, const char 
         for (symbol_i = 0; symbol_i < obj->symtab_count; symbol_i++) {
         
             struct nlist *sym = &obj->symtab[symbol_i];
-            char *symname = obj->strtab + sym->n_strx;
+            char *symname = obj->strtab + GET_INT32 (sym->n_strx);
             
             if ((sym->n_type & N_EXT) == 0) {
                 continue;
@@ -99,7 +99,7 @@ static uint32_t get_entry (void) {
     
     }
     
-    return symobj->symtab[symidx].n_value;
+    return GET_UINT32 (symobj->symtab[symidx].n_value);
 
 }
 
@@ -117,7 +117,7 @@ static unsigned long fix_offset (struct relocation_info r, unsigned long result)
 
     uint32_t zapdata = ((char *) text - (char *) output);
     
-    if (((r.r_symbolnum >> 24) & 0xff) != N_TEXT) {
+    if (((GET_UINT32 (r.r_symbolnum) >> 24) & 0xff) != N_TEXT) {
         return result;
     }
     
@@ -155,14 +155,14 @@ static void fix_offsets (void) {
     
         struct relocation_info *r = &tgr.relocations[i];
         
-        unsigned char *p = (unsigned char *) text + r->r_address;
+        unsigned char *p = (unsigned char *) text + GET_INT32 (r->r_address);
         uint32_t orig = 0;
         
-        if (((r->r_symbolnum >> 24) & 0xff) != N_TEXT) {
+        if (((GET_UINT32 (r->r_symbolnum) >> 24) & 0xff) != N_TEXT) {
             continue;
         }
         
-        length = (r->r_symbolnum & (3L << 25)) >> 25;
+        length = (GET_UINT32 (r->r_symbolnum) & (3L << 25)) >> 25;
         
         switch (length) {
         
@@ -231,11 +231,11 @@ static void fix_offsets (void) {
         struct relocation_info *r = &dgr.relocations[i];
         uint32_t orig = 0;
         
-        if (((r->r_symbolnum >> 24) & 0xff) != N_TEXT) {
+        if (((GET_UINT32 (r->r_symbolnum) >> 24) & 0xff) != N_TEXT) {
             continue;
         }
         
-        length = (r->r_symbolnum & (3L << 25)) >> 25;
+        length = (GET_UINT32 (r->r_symbolnum) & (3L << 25)) >> 25;
         
         switch (length) {
         
@@ -256,7 +256,7 @@ static void fix_offsets (void) {
         
         }
         
-        memcpy (&orig, ((char *) data + r->r_address), length);
+        memcpy (&orig, ((char *) data + GET_INT32 (r->r_address)), length);
         orig += zapdata;
         
         if (state->format == LD_FORMAT_I386_PE) {
@@ -278,7 +278,7 @@ static void fix_offsets (void) {
         
         }
         
-        memcpy ((char *) data + r->r_address, &orig, length);
+        memcpy ((char *) data + GET_INT32 (r->r_address), &orig, length);
     
     }
 
@@ -295,7 +295,7 @@ static void apply_slides (struct aout_object *object) {
     for (i = 0; i < object->symtab_count; i++) {
     
         struct nlist *symbol = &object->symtab[i];
-        uint32_t final_slide = 0;
+        uint32_t final_slide = 0, n_value = GET_UINT32 (symbol->n_value);
         
         if ((symbol->n_type & N_TYPE) != N_TEXT && (symbol->n_type & N_TYPE) != N_DATA && (symbol->n_type & N_TYPE) != N_BSS) {
             continue;
@@ -325,35 +325,45 @@ static void apply_slides (struct aout_object *object) {
         
         }
         
-        symbol->n_value += final_slide;
+        n_value += final_slide;
         
         switch (symbol->n_type & N_TYPE) {
         
             case N_BSS:
             
-                symbol->n_value -= object->header->a_data;
+                n_value -= GET_UINT32 (object->header->a_data);
                 /* fall through */
             
             case N_DATA:
             
-                symbol->n_value -= object->header->a_text;
+                n_value -= GET_UINT32 (object->header->a_text);
                 break;
         
         }
+        
+        write741_to_byte_array (symbol->n_value, n_value);
     
     }
     
     for (i = 0; i < object->trelocs_count; i++) {
     
         struct relocation_info *rel = &object->trelocs[i];
-        rel->r_address += object->text_slide;
+        
+        int32_t r_address = GET_INT32 (rel->r_address);
+        r_address += object->text_slide;
+        
+        write741_to_byte_array ((unsigned char *) rel->r_address, r_address);
     
     }
     
     for (i = 0; i < object->drelocs_count; i++) {
     
         struct relocation_info *rel = &object->drelocs[i];
-        rel->r_address += state->text_size + object->data_slide;
+        
+        int32_t r_address = GET_INT32 (rel->r_address);
+        r_address += state->text_size + object->data_slide;
+        
+        write741_to_byte_array ((unsigned char *) rel->r_address, r_address);
     
     }
 
@@ -363,12 +373,12 @@ static void init_map (struct aout_object *object) {
 
     int32_t symbol_i;
     
-    add_map_object (object->filename, object->header->a_bss, object->header->a_data, object->header->a_text);
+    add_map_object (object->filename, GET_UINT32 (object->header->a_bss), GET_UINT32 (object->header->a_data), GET_UINT32 (object->header->a_text));
     
     for (symbol_i = 0; symbol_i < object->symtab_count; symbol_i++) {
     
         struct nlist *sym = &object->symtab[symbol_i];
-        char *symname = object->strtab + sym->n_strx;
+        char *symname = object->strtab + GET_INT32 (sym->n_strx);
         
         if ((sym->n_type & N_TYPE) == N_UNDF) {
             continue;
@@ -379,11 +389,11 @@ static void init_map (struct aout_object *object) {
         }
         
         if ((sym->n_type & N_TYPE) == N_TEXT) {
-            add_map_text_symbol (object->filename, xstrdup (symname), sym->n_value);
+            add_map_text_symbol (object->filename, xstrdup (symname), GET_UINT32 (sym->n_value));
         } else if ((sym->n_type & N_TYPE) == N_DATA) {
-            add_map_data_symbol (object->filename, xstrdup (symname), sym->n_value);
+            add_map_data_symbol (object->filename, xstrdup (symname), GET_UINT32 (sym->n_value));
         } else if ((sym->n_type & N_TYPE) == N_BSS) {
-            add_map_bss_symbol (object->filename, xstrdup (symname), sym->n_value);
+            add_map_bss_symbol (object->filename, xstrdup (symname), GET_UINT32 (sym->n_value));
         }
     
     }
@@ -401,48 +411,48 @@ static void paste (struct aout_object *object) {
     obj_text = (char *) object->raw + sizeof (*header);
     
     if (state->impure) {
-        obj_text_size = header->a_text;
+        obj_text_size = GET_UINT32 (header->a_text);
     } else {
     
         if (state->format == LD_FORMAT_I386_PE) {
-            obj_text_size = ALIGN_UP (header->a_text, FILE_ALIGNMENT);
+            obj_text_size = ALIGN_UP (GET_UINT32 (header->a_text), FILE_ALIGNMENT);
         } else {
-            obj_text_size = ALIGN_UP (header->a_text, SECTION_ALIGNMENT);
+            obj_text_size = ALIGN_UP (GET_UINT32 (header->a_text), SECTION_ALIGNMENT);
         }
     
     }
     
-    memcpy ((char *) text + text_ptr, obj_text, header->a_text);
+    memcpy ((char *) text + text_ptr, obj_text, GET_UINT32 (header->a_text));
     text_ptr += obj_text_size;
     
     object->data_slide = data_ptr;
-    obj_data = (char *) object->raw + sizeof (*header) + header->a_text;
+    obj_data = (char *) object->raw + sizeof (*header) + GET_UINT32 (header->a_text);
     
     if (state->impure) {
-        obj_data_size = header->a_data;
+        obj_data_size = GET_UINT32 (header->a_data);
     } else {
     
         if (state->format == LD_FORMAT_I386_PE) {
-            obj_data_size = ALIGN_UP (header->a_data, FILE_ALIGNMENT);
+            obj_data_size = ALIGN_UP (GET_UINT32 (header->a_data), FILE_ALIGNMENT);
         } else {
-            obj_data_size = ALIGN_UP (header->a_data, SECTION_ALIGNMENT);
+            obj_data_size = ALIGN_UP (GET_UINT32 (header->a_data), SECTION_ALIGNMENT);
         }
     
     }
     
-    memcpy ((char *) data + data_ptr, obj_data, header->a_data);
+    memcpy ((char *) data + data_ptr, obj_data, GET_UINT32 (header->a_data));
     data_ptr += obj_data_size;
     
     object->bss_slide = bss_ptr;
     
     if (state->impure) {
-        obj_bss_size = header->a_bss;
+        obj_bss_size = GET_UINT32 (header->a_bss);
     } else {
     
         if (state->format == LD_FORMAT_I386_PE) {
-            obj_bss_size = ALIGN_UP (header->a_bss, FILE_ALIGNMENT);
+            obj_bss_size = ALIGN_UP (GET_UINT32 (header->a_bss), FILE_ALIGNMENT);
         } else {
-            obj_bss_size = ALIGN_UP (header->a_bss, SECTION_ALIGNMENT);
+            obj_bss_size = ALIGN_UP (GET_UINT32 (header->a_bss), SECTION_ALIGNMENT);
         }
     
     }
@@ -458,9 +468,9 @@ static void undef_collect (struct aout_object *object) {
     for (i = 0; i < object->symtab_count; i++) {
     
         struct nlist *sym = &object->symtab[i];
-        char *symname = object->strtab + sym->n_strx;
+        char *symname = object->strtab + GET_INT32 (sym->n_strx);
         
-        if ((sym->n_type & N_TYPE) != N_UNDF || sym->n_value == 0) {
+        if ((sym->n_type & N_TYPE) != N_UNDF || GET_UINT32 (sym->n_value) == 0) {
             continue;
         }
         
@@ -469,9 +479,9 @@ static void undef_collect (struct aout_object *object) {
         }
         
         sym->n_type = N_BSS | N_EXT;
-        val = sym->n_value;
+        val = GET_UINT32 (sym->n_value);
         
-        sym->n_value = state->text_size + state->data_size + state->bss_size;
+        write741_to_byte_array (sym->n_value, state->text_size + state->data_size + state->bss_size);
         state->bss_size += val;
     
     }
@@ -493,7 +503,7 @@ static int remove_relocation (struct gr *gr, struct relocation_info r) {
     
     for (i = 0, j = 0; i < gr->relocations_count; ++i) {
     
-        if (gr->relocations[i].r_address == r.r_address && gr->relocations[i].r_symbolnum == r.r_symbolnum) {
+        if (GET_INT32 (gr->relocations[i].r_address) == GET_INT32 (r.r_address) && GET_UINT32 (gr->relocations[i].r_symbolnum) == GET_UINT32 (r.r_symbolnum)) {
             continue;
         }
         
@@ -549,15 +559,17 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
     unsigned char *p;
     int dgroup = 0;
     
-    int32_t symbolnum = r->r_symbolnum & 0xffffff;
-    int32_t pcrel = (r->r_symbolnum & (1L << 24)) >> 24;
-    int32_t ext = (r->r_symbolnum & (1L << 27)) >> 27;
-    int32_t baserel = (r->r_symbolnum & (1L << 28)) >> 28;
-    int32_t jmptable = (r->r_symbolnum & (1L << 29)) >> 29;
-    int32_t rel = (r->r_symbolnum & (1L << 30)) >> 30;
-    int32_t copy = (r->r_symbolnum & (1L << 31)) >> 31;
+    uint32_t r_symbolnum = GET_UINT32 (r->r_symbolnum);
+    
+    int32_t symbolnum = r_symbolnum & 0xffffff;
+    int32_t pcrel = (r_symbolnum & (1L << 24)) >> 24;
+    int32_t ext = (r_symbolnum & (1L << 27)) >> 27;
+    int32_t baserel = (r_symbolnum & (1L << 28)) >> 28;
+    int32_t jmptable = (r_symbolnum & (1L << 29)) >> 29;
+    int32_t rel = (r_symbolnum & (1L << 30)) >> 30;
+    int32_t copy = (r_symbolnum & (1L << 31)) >> 31;
 
-    int32_t length = (r->r_symbolnum & (3L << 25)) >> 25;
+    int32_t length = (r_symbolnum & (3L << 25)) >> 25;
     
     switch (length) {
     
@@ -585,14 +597,14 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
     
     }
     
-    p = (unsigned char *) output + header_size + r->r_address;
+    p = (unsigned char *) output + header_size + GET_INT32 (r->r_address);
     opcode = *(int32_t *) (p - 1) & 0xff;
     
     symbol = &object->symtab[symbolnum];
     
     if (ext) {
     
-        char *symname = object->strtab + symbol->n_strx;
+        char *symname = object->strtab + GET_INT32 (symbol->n_strx);
         char *temp = xstrdup (symname);
         
         struct aout_object *symobj;
@@ -601,9 +613,9 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
         if (strstart ("DGROUP", (const char **) &temp)) {
         
             if (strcmp (temp, "__end") == 0) {
-                symbol->n_value = state->data_size + state->bss_size;
+                write741_to_byte_array (symbol->n_value, state->data_size + state->bss_size);
             } else if (strcmp (temp, "__edata") == 0) {
-                symbol->n_value = state->data_size;
+                write741_to_byte_array (symbol->n_value, state->data_size);
             } else {
             
                 result = ((char *) data - (char *) output);
@@ -622,7 +634,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
     if (pcrel) {
     
         if (result == 0) {
-            result = (long) symbol->n_value - (r->r_address + length);
+            result = (long) GET_UINT32 (symbol->n_value) - (GET_INT32 (r->r_address) + length);
         }
     
     } else {
@@ -630,37 +642,46 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
         if (dgroup || !ext || (symbol->n_type & N_TYPE) == N_BSS || (symbol->n_type & N_TYPE) == N_DATA || (symbol->n_type & N_TYPE) == N_TEXT) {
         
             struct relocation_info new_relocation;
-            new_relocation.r_address = r->r_address;
+            
+            int32_t r_address;
+            uint32_t r_symbolnum;
+            
+            r_address = GET_INT32 (r->r_address);
             
             if (is_data) {
-                new_relocation.r_address -= state->text_size;
+                r_address -= state->text_size;
             }
+            
+            write741_to_byte_array ((unsigned char *) new_relocation.r_address, r_address);
             
             if (dgroup) {
-                new_relocation.r_symbolnum = r->r_symbolnum;
+                r_symbolnum = GET_UINT32 (r->r_symbolnum);
             } else {
-                new_relocation.r_symbolnum = r->r_symbolnum & (3L << 25);
+                r_symbolnum = GET_UINT32 (r->r_symbolnum) & (3L << 25);
             }
             
+            write741_to_byte_array (new_relocation.r_symbolnum, r_symbolnum);
             add_relocation (is_data ? &dgr : &tgr, &new_relocation);
         
         }
         
         if (opcode == 0x9A) {
         
-            uint32_t temp = *(int32_t *) ((char *) output + header_size + r->r_address);
+            uint32_t temp = *(int32_t *) ((char *) output + header_size + GET_INT32 (r->r_address));
             
             result = ((temp >> 16) & 0xffff) * 16;
             result += temp & 0xffff;
         
         } else if (result == 0) {
         
+            int32_t r_address = GET_INT32 (r->r_address);
+            
             if (length == 4) {
-                result = *(int32_t *) ((char *) output + header_size + r->r_address);
+                result = *(int32_t *) ((char *) output + header_size + r_address);
             } else if (length == 2) {
-                result = *(int16_t *) ((char *) output + header_size + r->r_address);
+                result = *(int16_t *) ((char *) output + header_size + r_address);
             }if (length == 1) {
-                result = *(int8_t *) ((char *) output + header_size + r->r_address);
+                result = *(int8_t *) ((char *) output + header_size + r_address);
             }
         
         }
@@ -668,14 +689,14 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
         if (ext || dgroup) {
         
             if (ext) {
-                result += symbol->n_value;
+                result += GET_UINT32 (symbol->n_value);
             }
         
         } else {
         
             if ((symbolnum == 6) || (symbolnum == 8)) {
             
-                result -= object->header->a_text;
+                result -= GET_UINT32 (object->header->a_text);
                 result += state->text_size;
             
             }
@@ -690,7 +711,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
             
             if (symbolnum == 8) {
             
-                result -= object->header->a_data;
+                result -= GET_UINT32 (object->header->a_data);
                 result += state->data_size;
                 result += objbsssize;
             
@@ -708,7 +729,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
         
             if (state->format == LD_FORMAT_BINARY || state->format == LD_FORMAT_MSDOS) {
             
-                report_at (object->filename, r->r_address, REPORT_ERROR, "call exceeds 65535 bytes");
+                report_at (object->filename, GET_INT32 (r->r_address), REPORT_ERROR, "call exceeds 65535 bytes");
                 return 1;
             
             }
@@ -718,8 +739,10 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
             
             for (i = 0; i < tgr.relocations_count; ++i) {
             
-                if (tgr.relocations[i].r_address == r->r_address) {
-                    tgr.relocations[i].r_address += 2;
+                int32_t r_address = GET_INT32 (tgr.relocations[i].r_address);
+                
+                if (r_address == GET_INT32 (r->r_address)) {
+                    write741_to_byte_array ((unsigned char *) tgr.relocations[i].r_address, r_address + 2);
                 }
             
             }
@@ -731,17 +754,19 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
             if (state->format == LD_FORMAT_MSDOS_MZ) {
             
                 *(p - 1) = 0x0E;
-                
                 p++;
-                r->r_address++;
+                
+                write741_to_byte_array ((unsigned char *) r->r_address, GET_INT32 (r->r_address) + 1);
             
             }
             
             for (i = tgr.relocations_count - 1; i >= 0; --i) {
             
-                if (tgr.relocations[i].r_address + 1 == r->r_address) {
+                int32_t r_address = GET_INT32 (tgr.relocations[i].r_address);
                 
-                    tgr.relocations[i].r_address++;
+                if (r_address + 1 == GET_INT32 (r->r_address)) {
+                
+                    write741_to_byte_array ((unsigned char *) tgr.relocations[i].r_address, r_address + 1);
                     
                     result = fix_offset (tgr.relocations[i], result);
                     remove_relocation (&tgr, tgr.relocations[i]);
@@ -750,7 +775,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
             
             }
             
-            number_to_chars (p, result - r->r_address - 2, 2);
+            number_to_chars (p, result - GET_INT32 (r->r_address) - 2, 2);
             *(p - 1) = 0xE8;
             
             memset (p + 2, 0x90, 1);
@@ -773,7 +798,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
             
             for (i = tgr.relocations_count - 1; i >= 0; --i) {
             
-                if (tgr.relocations[i].r_address == r->r_address) {
+                if (GET_INT32 (tgr.relocations[i].r_address) == GET_INT32 (r->r_address)) {
                 
                     result = fix_offset (tgr.relocations[i], result);
                     remove_relocation (&tgr, tgr.relocations[i]);
@@ -814,9 +839,9 @@ static int glue (struct aout_object *object) {
     
     }
     
-    objtextsize += object->header->a_text;
-    objdatasize += object->header->a_data;
-    objbsssize  += object->header->a_bss;
+    objtextsize += GET_UINT32 (object->header->a_text);
+    objdatasize += GET_UINT32 (object->header->a_data);
+    objbsssize  += GET_UINT32 (object->header->a_bss);
     
     return err;
 
@@ -849,13 +874,13 @@ static int init_aout_object (void) {
 
 static int write_aout_object (FILE *ofp, uint32_t a_entry) {
 
-    aout_hdr->a_info = state->impure ? OMAGIC : ZMAGIC;
-    aout_hdr->a_text = state->text_size;
-    aout_hdr->a_data = state->data_size;
-    aout_hdr->a_bss = state->bss_size;
-    aout_hdr->a_entry = a_entry;
-    aout_hdr->a_trsize = tgr.relocations_count * sizeof (struct relocation_info);
-    aout_hdr->a_drsize = dgr.relocations_count * sizeof (struct relocation_info);
+    write741_to_byte_array (aout_hdr->a_info, state->impure ? OMAGIC : ZMAGIC);
+    write741_to_byte_array (aout_hdr->a_text, state->text_size);
+    write741_to_byte_array (aout_hdr->a_data, state->data_size);
+    write741_to_byte_array (aout_hdr->a_bss, state->bss_size);
+    write741_to_byte_array (aout_hdr->a_entry, a_entry);
+    write741_to_byte_array (aout_hdr->a_trsize, tgr.relocations_count * sizeof (struct relocation_info));
+    write741_to_byte_array (aout_hdr->a_drsize, dgr.relocations_count * sizeof (struct relocation_info));
     
     if (fwrite ((char *) output, output_size, 1, ofp) != 1) {
     
@@ -928,7 +953,7 @@ static int write_msdos_mz_object (FILE *ofp, uint32_t entry) {
         struct relocation_info *r = &tgr.relocations[i];
         /*report_at (NULL, 0, REPORT_INTERNAL_ERROR, "%x, %x", r->r_address, ((r->r_symbolnum >> 24) & 0xff));*/
         
-        if (((r->r_symbolnum >> 24) & 0xff) == N_ABS) {
+        if (((GET_UINT32 (r->r_symbolnum) >> 24) & 0xff) == N_ABS) {
             remove_relocation (&tgr, *r);
         }
     
@@ -943,22 +968,22 @@ static int write_msdos_mz_object (FILE *ofp, uint32_t entry) {
     msdos_hdr->e_magic[0] = 'M';
     msdos_hdr->e_magic[1] = 'Z';
     
-    msdos_hdr->e_cblp = (ibss_addr % 512);
-    msdos_hdr->e_cp = ALIGN_UP (ibss_addr, 512) / 512;
+    write721_to_byte_array (msdos_hdr->e_cblp, (ibss_addr % 512));
+    write721_to_byte_array (msdos_hdr->e_cp, ALIGN_UP (ibss_addr, 512) / 512);
     
-    msdos_hdr->e_crlc = tgr.relocations_count;
-    msdos_hdr->e_cparhdr = ((header_size + reloc_sz) / 16);
+    write721_to_byte_array (msdos_hdr->e_crlc, tgr.relocations_count);
+    write721_to_byte_array (msdos_hdr->e_cparhdr, ((header_size + reloc_sz) / 16));
     
-    msdos_hdr->e_minalloc = (ALIGN_UP (ibss_size + stack_size, 16) / 16);
-    msdos_hdr->e_maxalloc = 0xFFFF;
+    write721_to_byte_array (msdos_hdr->e_minalloc, (ALIGN_UP (ibss_size + stack_size, 16) / 16));
+    write721_to_byte_array (msdos_hdr->e_maxalloc, 0xFFFF);
     
-    msdos_hdr->e_ss = (stack_addr / 16);
-    msdos_hdr->e_sp = (stack_addr % 16 + stack_size);
+    write721_to_byte_array (msdos_hdr->e_ss, (stack_addr / 16));
+    write721_to_byte_array (msdos_hdr->e_sp, (stack_addr % 16 + stack_size));
     
-    msdos_hdr->e_ip = entry % 16;
-    msdos_hdr->e_cs = entry / 16;
+    write721_to_byte_array (msdos_hdr->e_ip, entry % 16);
+    write721_to_byte_array (msdos_hdr->e_cs, entry / 16);
     
-    msdos_hdr->e_lfarlc = header_size;
+    write721_to_byte_array (msdos_hdr->e_lfarlc, header_size);
     
     if (tgr.relocations_count > 0) {
     
@@ -984,16 +1009,18 @@ static int write_msdos_mz_object (FILE *ofp, uint32_t entry) {
         for (i = 0; i < tgr.relocations_count; ++i) {
         
             struct relocation_info *r = &tgr.relocations[i];
+            
+            int32_t r_address = GET_INT32 (r->r_address);
             uint32_t offset = (i * 4);
             
-            if (r->r_address >= 65535) {
+            if (r_address >= 65535) {
             
-                number_to_chars ((unsigned char *) relocs + offset, r->r_address % 16, 2);
-                number_to_chars ((unsigned char *) relocs + offset + 2, r->r_address / 16, 2);
+                number_to_chars ((unsigned char *) relocs + offset, r_address % 16, 2);
+                number_to_chars ((unsigned char *) relocs + offset + 2, r_address / 16, 2);
             
             } else {
             
-                number_to_chars ((unsigned char *) relocs + offset, r->r_address, 2);
+                number_to_chars ((unsigned char *) relocs + offset, r_address, 2);
                 number_to_chars ((unsigned char *) relocs + offset + 2, 0, 2);
             
             }

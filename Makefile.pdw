@@ -6,7 +6,7 @@ CC=gccwin
 LD=ldwin
 
 COPTS=-S -O2 -fno-common -ansi -I. -I../pdos/pdpclib -D__WIN32__ -D__NOBIVA__ -D__PDOS__
-COBJ=aout.o hashtab.o ld.o lib.o map.o report.o
+COBJ=aout.o hashtab.o ld.o lib.o map.o report.o write7x.o
 
 all: clean ld86.exe
 

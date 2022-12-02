@@ -7,19 +7,19 @@
 struct msdos_header {
 
     unsigned char   e_magic[2];         /* Magic number                     */
-    unsigned short  e_cblp;             /* Bytes on last page of file       */
-    unsigned short  e_cp;               /* Pages in file                    */
-    unsigned short  e_crlc;             /* Relocations                      */
-    unsigned short  e_cparhdr;          /* Size of header in paragraphs     */
-    unsigned short  e_minalloc;         /* Minimum extra paragraphs needed  */
-    unsigned short  e_maxalloc;         /* Maximum extra paragraphs needed  */
-    unsigned short  e_ss;               /* Initial (relative) SS value      */
-    unsigned short  e_sp;               /* Initial SP value                 */
-    unsigned short  e_csum;             /* Checksum                         */
-    unsigned short  e_ip;               /* Initial IP value                 */
-    unsigned short  e_cs;               /* Initial (relative) CS value      */
-    unsigned short  e_lfarlc;           /* File address of relocation table */
-    unsigned short  e_ovno;             /* Overlay number                   */
+    unsigned char   e_cblp[2];          /* Bytes on last page of file       */
+    unsigned char   e_cp[2];            /* Pages in file                    */
+    unsigned char   e_crlc[2];          /* Relocations                      */
+    unsigned char   e_cparhdr[2];       /* Size of header in paragraphs     */
+    unsigned char   e_minalloc[2];      /* Minimum extra paragraphs needed  */
+    unsigned char   e_maxalloc[2];      /* Maximum extra paragraphs needed  */
+    unsigned char   e_ss[2];            /* Initial (relative) SS value      */
+    unsigned char   e_sp[2];            /* Initial SP value                 */
+    unsigned char   e_csum[2];          /* Checksum                         */
+    unsigned char   e_ip[2];            /* Initial IP value                 */
+    unsigned char   e_cs[2];            /* Initial (relative) CS value      */
+    unsigned char   e_lfarlc[2];        /* File address of relocation table */
+    unsigned char   e_ovno[2];          /* Overlay number                   */
 
 };
 

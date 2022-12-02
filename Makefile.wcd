@@ -8,7 +8,7 @@ COPTS=-ecc -q -w -c -ml -zl -D__MSDOS__ -D__PDOS__ -fpi87 -s -zdp -zu -I. -I..\p
 
 all: clean ld86.exe
 
-ld86.exe: aout.obj hashtab.obj ld.obj lib.obj map.obj report.obj
+ld86.exe: aout.obj hashtab.obj ld.obj lib.obj map.obj report.obj write7x.obj
   wlink File ld.obj Name ld86.exe Form dos Library temp.lib,..\pdos\pdpclib\watcom.lib Option quiet,map
 
 .c.obj:

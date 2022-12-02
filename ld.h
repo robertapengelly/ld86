@@ -13,7 +13,8 @@ enum {
 
 };
 
-#include    <stddef.h>
+#define     GET_INT32(arr)              ((int32_t) arr[0] | (((int32_t) arr[1]) << 8) | (((int32_t) arr[2]) << 16) | (((int32_t) arr[3]) << 24))
+#define     GET_UINT32(arr)             ((uint32_t) arr[0] | (((uint32_t) arr[1]) << 8) | (((uint32_t) arr[2]) << 16) | (((uint32_t) arr[3]) << 24))
 
 #include    "types.h"
 

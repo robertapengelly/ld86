@@ -114,7 +114,7 @@ static int process_aout (void *obj, unsigned long sz, const char *fname, int qui
     char *strtab;
     long i;
     
-    if (N_GETMAGIC (*hdr) != OMAGIC) {
+    if ((GET_UINT32 (hdr->a_info) & 0xffff) != OMAGIC) {
     
         if (!quiet) {
             report_at (program_name, 0, REPORT_ERROR, "'%s' is not a valid a.out object", fname);
@@ -140,37 +140,37 @@ static int process_aout (void *obj, unsigned long sz, const char *fname, int qui
     
     if (state->impure) {
     
-        state->text_size    += hdr->a_text;
-        state->data_size    += hdr->a_data;
-        state->bss_size     += hdr->a_bss;
+        state->text_size    += GET_UINT32 (hdr->a_text);
+        state->data_size    += GET_UINT32 (hdr->a_data);
+        state->bss_size     += GET_UINT32 (hdr->a_bss);
     
     } else {
     
         
         if (state->format == LD_FORMAT_I386_PE) {
         
-            state->text_size    += ALIGN_UP (hdr->a_text,   FILE_ALIGNMENT);
-            state->data_size    += ALIGN_UP (hdr->a_data,   FILE_ALIGNMENT);
-            state->bss_size     += ALIGN_UP (hdr->a_bss,    FILE_ALIGNMENT);
+            state->text_size    += ALIGN_UP (GET_UINT32 (hdr->a_text),   FILE_ALIGNMENT);
+            state->data_size    += ALIGN_UP (GET_UINT32 (hdr->a_data),   FILE_ALIGNMENT);
+            state->bss_size     += ALIGN_UP (GET_UINT32 (hdr->a_bss),    FILE_ALIGNMENT);
         
         } else {
         
-            state->text_size    += ALIGN_UP (hdr->a_text,   SECTION_ALIGNMENT);
-            state->data_size    += ALIGN_UP (hdr->a_data,   SECTION_ALIGNMENT);
-            state->bss_size     += ALIGN_UP (hdr->a_bss,    SECTION_ALIGNMENT);
+            state->text_size    += ALIGN_UP (GET_UINT32 (hdr->a_text),   SECTION_ALIGNMENT);
+            state->data_size    += ALIGN_UP (GET_UINT32 (hdr->a_data),   SECTION_ALIGNMENT);
+            state->bss_size     += ALIGN_UP (GET_UINT32 (hdr->a_bss),    SECTION_ALIGNMENT);
         
         }
     
     }
     
-    trelocs_off     = sizeof (*hdr) + hdr->a_text + hdr->a_data;
-    drelocs_off     = trelocs_off + hdr->a_trsize;
-    symtab_off      = drelocs_off + hdr->a_drsize;
-    strtab_off      = symtab_off + hdr->a_syms;
+    trelocs_off     = sizeof (*hdr) + GET_UINT32 (hdr->a_text) + GET_UINT32 (hdr->a_data);
+    drelocs_off     = trelocs_off + GET_UINT32 (hdr->a_trsize);
+    symtab_off      = drelocs_off + GET_UINT32 (hdr->a_drsize);
+    strtab_off      = symtab_off + GET_UINT32 (hdr->a_syms);
     
-    trelocs_count   = hdr->a_trsize / sizeof (*trelocs);
-    drelocs_count   = hdr->a_drsize / sizeof (*drelocs);
-    symtab_count    = hdr->a_syms / sizeof (*symtab);
+    trelocs_count   = GET_UINT32 (hdr->a_trsize) / sizeof (*trelocs);
+    drelocs_count   = GET_UINT32 (hdr->a_drsize) / sizeof (*drelocs);
+    symtab_count    = GET_UINT32 (hdr->a_syms) / sizeof (*symtab);
     
     symtab  = (void *) ((char *) obj + symtab_off);
     trelocs = (void *) ((char *) obj + trelocs_off);
