@@ -33,7 +33,8 @@ enum options {
     OPTION_MAP,
     OPTION_MAPFILE,
     OPTION_OUTFILE,
-    OPTION_STACK
+    OPTION_STACK,
+    OPTION_STRIP
 
 };
 
@@ -45,6 +46,7 @@ static struct option opts[] = {
     
     { "e",          OPTION_ENTRY,       OPTION_HAS_ARG  },
     { "o",          OPTION_OUTFILE,     OPTION_HAS_ARG  },
+    { "s",          OPTION_STRIP,       OPTION_NO_ARG   },
     
     { "-oformat",   OPTION_FORMAT,      OPTION_HAS_ARG  },
     { "-stacksize", OPTION_STACK,       OPTION_HAS_ARG  },
@@ -68,6 +70,7 @@ static void print_help (void) {
     
     fprintf (stderr, "    -e ADDRESS            Set start address\n");
     fprintf (stderr, "    -o FILE               Set output file name (default a.out)\n");
+    fprintf (stderr, "    -s                    Strip all (currently does nothing)\n");
     
     fprintf (stderr, "    --oformat FORMAT      Specify the format of output file (default msdos)\n");
     fprintf (stderr, "                              Supported formats are:\n");
@@ -393,6 +396,10 @@ void parse_args (int *pargc, char ***pargv, int optind) {
                 state->stack_size = (unsigned long ) conversion;
                 break;
             
+            }
+            
+            case OPTION_STRIP: {
+                break;
             }
             
             default: {
