@@ -413,7 +413,12 @@ void parse_args (int *pargc, char ***pargv, int optind) {
     
     }
     
-    if (!state->format) { state->format = LD_FORMAT_MSDOS; }
+#ifdef      __MSDOS__
+    if (!state->format) { state->format = LD_FORMAT_MSDOS_MZ; }
+#else
+    if (!state->format) { state->format = LD_FORMAT_I386_AOUT; }
+#endif
+    
     if (!state->outfile) { state->outfile = "a.out"; }
     if (!state->stack_size) { state->stack_size = 4096; }
 

@@ -610,7 +610,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
         struct aout_object *symobj;
         int32_t symidx;
         
-        if (strstart ("DGROUP", (const char **) &temp)) {
+        if (state->format != LD_FORMAT_I386_AOUT && strstart ("DGROUP", (const char **) &temp)) {
         
             if (strcmp (temp, "__end") == 0) {
                 write741_to_byte_array (symbol->n_value, state->data_size + state->bss_size);
@@ -789,19 +789,23 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
     
     } else/* if (state->format == LD_FORMAT_MSDOS_MZ)*/ {
     
-        int32_t data_addr = ((char *) data - (char *) output) - header_size;
-        int32_t i;
+        if (state->format != LD_FORMAT_I386_AOUT) {
         
-        if (result >= data_addr) {
-        
-            result -= (data_addr & 0xfffffff0);
+            int32_t data_addr = ((char *) data - (char *) output) - header_size;
+            int32_t i;
             
-            for (i = tgr.relocations_count - 1; i >= 0; --i) {
+            if (result >= data_addr) {
             
-                if (GET_INT32 (tgr.relocations[i].r_address) == GET_INT32 (r->r_address)) {
+                result -= (data_addr & 0xfffffff0);
                 
-                    result = fix_offset (tgr.relocations[i], result);
-                    remove_relocation (&tgr, tgr.relocations[i]);
+                for (i = tgr.relocations_count - 1; i >= 0; --i) {
+                
+                    if (GET_INT32 (tgr.relocations[i].r_address) == GET_INT32 (r->r_address)) {
+                    
+                        result = fix_offset (tgr.relocations[i], result);
+                        remove_relocation (&tgr, tgr.relocations[i]);
+                    
+                    }
                 
                 }
             
