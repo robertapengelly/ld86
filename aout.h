@@ -25,7 +25,7 @@ struct aout_exec {
 /* Relocation entry. */
 struct relocation_info {
 
-    char r_address[4];
+    unsigned char r_address[4];
     unsigned char r_symbolnum[4];
 
 };
@@ -33,11 +33,11 @@ struct relocation_info {
 /* Symbol table entry. */
 struct nlist {
 
-    char n_strx[4];
+    unsigned char n_strx[4];
     unsigned char n_type;
     
-    char n_other;
-    char n_desc[2];
+    unsigned char n_other;
+    unsigned char n_desc[2];
     
     unsigned char n_value[4];
 

@@ -172,9 +172,9 @@ static int process_aout (void *obj, unsigned long sz, const char *fname, int qui
     drelocs_count   = GET_UINT32 (hdr->a_drsize) / sizeof (*drelocs);
     symtab_count    = GET_UINT32 (hdr->a_syms) / sizeof (*symtab);
     
-    symtab  = (void *) ((char *) obj + symtab_off);
     trelocs = (void *) ((char *) obj + trelocs_off);
     drelocs = (void *) ((char *) obj + drelocs_off);
+    symtab  = (void *) ((char *) obj + symtab_off);
     strtab  = (char *) obj + strtab_off;
     
     if ((data_obj = malloc (sizeof (*data_obj))) == NULL) {

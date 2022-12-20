@@ -680,7 +680,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
                 result = *(int32_t *) ((char *) output + header_size + r_address);
             } else if (length == 2) {
                 result = *(int16_t *) ((char *) output + header_size + r_address);
-            }if (length == 1) {
+            } else if (length == 1) {
                 result = *(int8_t *) ((char *) output + header_size + r_address);
             }
         
