@@ -470,6 +470,8 @@ static int process_archive (FILE *ar_file, const char *root_fname) {
                         return 1;
                     
                     }
+                    
+                    continue;
                 
                 }
                 
