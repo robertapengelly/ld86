@@ -8,10 +8,12 @@
 #include    "aout.h"
 #include    "ar.h"
 #include    "coff.h"
+#include    "hashtab.h"
 #include    "ld.h"
 #include    "lib.h"
 #include    "report.h"
 #include    "types.h"
+#include    "vector.h"
 
 struct ld_state *state = 0;
 const char *program_name = 0;
@@ -97,6 +99,9 @@ static uint32_t conv_dec (char *str, int32_t max) {
     return 0;
 
 }*/
+
+static struct hashtab hashtab_globals = { 0 };
+static struct vector vec_undef = { 0 };
 
 static int process_aout (void *obj, unsigned long sz, const char *fname, int quiet) {
 
@@ -197,6 +202,155 @@ static int process_aout (void *obj, unsigned long sz, const char *fname, int qui
     data_obj->symtab_count = symtab_count;
     
     dynarray_add (&state->aout_objs, &state->nb_aout_objs, data_obj);
+    
+    for (i = 0; i < symtab_count; ++i) {
+    
+        struct nlist *sym = &symtab[i];
+        char *symname = strtab + GET_INT32 (sym->n_strx);
+        
+        if ((sym->n_type & N_TYPE) == N_UNDF) {
+        
+            char *temp = xstrdup (symname);
+            
+            if (!strstart ("DGROUP", (const char **) &temp)) {
+            
+                vec_push (&vec_undef, (void *) symname);
+                /*report_at (fname, 0, REPORT_INTERNAL_ERROR, "Undefined symbol: %s", symname);*/
+            
+            }
+        
+        } else if (sym->n_type == 5 || sym->n_type == 7 || sym->n_type == 9) {
+        
+            struct hashtab_name *key;
+            
+            if ((key = hashtab_alloc_name (symname)) == NULL) {
+            
+                free (key);
+                
+                report_at (program_name, 0, REPORT_ERROR, "failed to allocate memory (memory full)");
+                return 1;
+            
+            }
+            
+            if (hashtab_get (&hashtab_globals, key) != NULL) {
+            
+                free (key);
+                continue;
+            
+            }
+            
+            hashtab_put (&hashtab_globals, key, symname);
+            /*report_at (fname, 0, REPORT_INTERNAL_ERROR, "External symbol: %s", symname);*/
+        
+        }
+    
+    }
+    
+    return 0;
+
+}
+
+static int read_ar_obj (FILE *ar_file, const char *root_fname, uint32_t index) {
+
+    struct ar_header hdr;
+    uint32_t sz, sz_aligned;
+    
+    int i;
+    
+    char *fname, *path;
+    void *obj;
+    
+    if ((fname = malloc (17)) == NULL) {
+    
+        report_at (program_name, 0, REPORT_ERROR, "failed to allocation memory (memory full)");
+        return 1;
+    
+    }
+    
+    fseek (ar_file, index, SEEK_SET);
+    
+    if (fread (&hdr, sizeof (hdr), 1, ar_file) != 1) {
+    
+        if (feof (ar_file)) {
+            return 0;
+        }
+        
+        report_at (program_name, 0, REPORT_ERROR, "failed whilst reading '%s'", root_fname);
+        return 1;
+    
+    }
+    
+    sz = conv_dec (hdr.size, 10);
+    sz_aligned = (sz % 2) ? (sz + 1) : sz;
+    
+    memcpy (fname, hdr.name, 16);
+    
+    for (i = 0; i < 16; ++i) {
+    
+        if (fname[i] == 0x20 || fname[i] == '/') {
+        
+            fname[i] = '\0';
+            break;
+        
+        }
+    
+    }
+    
+    if ((obj = malloc (sz_aligned)) == NULL) {
+    
+        report_at (program_name, 0, REPORT_ERROR, "failed to allocate memory (memory full)");
+        return 1;
+    
+    }
+    
+    if (fread (obj, sz_aligned, 1, ar_file) != 1) {
+    
+        report_at (program_name, 0, REPORT_ERROR, "failed whilst reading '%s'", root_fname);
+        free (obj);
+        
+        return 1;
+    
+    }
+    
+    if (fname) {
+    
+        unsigned long len = strlen (root_fname) + 1 + strlen (fname) + 2;
+        
+        if ((path = malloc (len)) == NULL) {
+        
+            report_at (program_name, 0, REPORT_ERROR, "failed to allocate memory (memory full)");
+            free (obj);
+            
+            return 1;
+        
+        }
+        
+        memset (path, 0, len);
+        sprintf (path, "%s(%s)", root_fname, fname);
+        
+        if (process_aout (obj, sz, path, 1)) {
+        
+            /*if ((err = process_coff (obj, sz, path, 1))) {*/
+                free (obj);
+                return 1;
+            /*}*/
+        
+        }
+    
+    } else {
+    
+        if (process_aout (obj, sz, "", 1)) {
+        
+            /*if ((err = process_coff (obj, sz, "", 1))) {*/
+                free (obj);
+                return 1;
+            /*}*/
+        
+        }
+    
+    }
+    
+    free (fname);
     return 0;
 
 }
@@ -243,8 +397,114 @@ static int process_archive (FILE *ar_file, const char *root_fname) {
         
         if (memcmp (hdr.name, "__.SYMDEF", 9) == 0) {
         
-            fseek (ar_file, sz, SEEK_CUR);
-            continue;
+            unsigned char temp[4], *temp3;
+            uint32_t cnt, j, k, *temp2;
+            
+            if (fread (temp, sizeof (uint32_t), 1, ar_file) != 1) {
+            
+                report_at (program_name, 0, REPORT_ERROR, "failed to read symdef count");
+                return 1;
+            
+            }
+            
+            sz -= sizeof (uint32_t);
+            cnt = (uint32_t) temp[3] | (((uint32_t) temp[2]) << 8) | (((uint32_t) temp[1]) << 16) | (((uint32_t) temp[0]) << 24);
+            
+            if ((temp2 = (uint32_t *) malloc (cnt * sizeof (uint32_t))) == NULL) {
+            
+                report_at (program_name, 0, REPORT_ERROR, "failed to allocate memory (memory full)");
+                return 1;
+            
+            }
+            
+            for (j = 0; j < cnt; ++j) {
+            
+                if (fread (temp, sizeof (uint32_t), 1, ar_file) != 1) {
+                
+                    report_at (program_name, 0, REPORT_ERROR, "failed to read symdef index");
+                    return 1;
+                
+                }
+                
+                temp2[j] = (uint32_t) temp[3] | (((uint32_t) temp[2]) << 8) | (((uint32_t) temp[1]) << 16) | (((uint32_t) temp[0]) << 24);
+            
+            }
+            
+            sz -= cnt * sizeof (uint32_t);
+            
+            if ((temp3 = (unsigned char *) malloc (sz)) == NULL) {
+            
+                report_at (program_name, 0, REPORT_ERROR, "failed to allocate memory (memory full)");
+                return 1;
+            
+            }
+            
+            if (fread (temp3, sz, 1, ar_file) != 1) {
+            
+                report_at (program_name, 0, REPORT_ERROR, "failed to read symdef symbols");
+                return 1;
+            
+            }
+            
+            while (vec_undef.length > 0) {
+            
+                const char *symname = (const char *) vec_pop (&vec_undef);
+                
+                struct hashtab_name *key;
+                char *temp;
+                
+                if ((key = hashtab_alloc_name (symname)) == NULL) {
+                
+                    report_at (program_name, 0, REPORT_ERROR, "failed to allocate memory (memory full)");
+                    return 1;
+                
+                }
+                
+                if ((temp = hashtab_get (&hashtab_globals, key)) != NULL) {
+                
+                    if (strcmp (temp, symname) != 0) {
+                    
+                        free (key);
+                        
+                        report_at (program_name, 0, REPORT_ERROR, "hashtab collison");
+                        return 1;
+                    
+                    }
+                
+                }
+                
+                free (key);
+                
+                for (j = 0, k = 0; k < sz; ) {
+                
+                    uint32_t len = strlen ((char *) temp3 + k) + 1;
+                    
+                    if (strcmp ((char *) temp3 + k, symname) == 0) {
+                        break;
+                    }
+                    
+                    k += len;
+                    j++;
+                
+                }
+                
+                if (j >= cnt) {
+                
+                    report_at (program_name, 0, REPORT_ERROR, "%s not found", symname);
+                    return 1;
+                
+                }
+                
+                if (read_ar_obj (ar_file, root_fname, temp2[j])) {
+                
+                    report_at (program_name, 0, REPORT_ERROR, "failed whilst reading ar object");
+                    return 1;
+                
+                }
+            
+            }
+            
+            return 0;
         
         }
         
