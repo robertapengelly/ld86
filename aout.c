@@ -987,7 +987,7 @@ static int write_msdos_mz_object (FILE *ofp, uint32_t entry) {
     write721_to_byte_array (msdos_hdr->e_maxalloc, 0xFFFF);
     
     write721_to_byte_array (msdos_hdr->e_ss, (stack_addr / 16));
-    write721_to_byte_array (msdos_hdr->e_sp, (stack_addr % 16 + stack_size));
+    write721_to_byte_array (msdos_hdr->e_sp, ALIGN_UP (stack_addr % 16 + stack_size, 16));
     
     write721_to_byte_array (msdos_hdr->e_ip, entry % 16);
     write721_to_byte_array (msdos_hdr->e_cs, entry / 16);
