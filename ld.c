@@ -210,13 +210,10 @@ static int process_aout (void *obj, unsigned long sz, const char *fname, int qui
         
         if ((sym->n_type & N_TYPE) == N_UNDF) {
         
-            char *temp = xstrdup (symname);
+            char *temp = symname;
             
             if (!strstart ("DGROUP", (const char **) &temp)) {
-            
                 vec_push (&vec_undef, (void *) symname);
-                /*report_at (fname, 0, REPORT_INTERNAL_ERROR, "Undefined symbol: %s", symname);*/
-            
             }
         
         } else if (sym->n_type == 5 || sym->n_type == 7 || sym->n_type == 9) {
@@ -240,7 +237,6 @@ static int process_aout (void *obj, unsigned long sz, const char *fname, int qui
             }
             
             hashtab_put (&hashtab_globals, key, symname);
-            /*report_at (fname, 0, REPORT_INTERNAL_ERROR, "External symbol: %s", symname);*/
         
         }
     
@@ -731,6 +727,15 @@ int main (int argc, char **argv) {
             goto out;
         
         }
+    
+    }
+    
+    if (state->nb_aout_objs == 0 && state->nb_coff_objs == 0) {
+    
+        report_at (program_name, 0, REPORT_INTERNAL_ERROR, "no object files provided");
+        
+        err = EXIT_FAILURE;
+        goto out;
     
     }
     

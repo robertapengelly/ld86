@@ -554,11 +554,11 @@ static int add_relocation (struct gr *gr, struct relocation_info *r) {
 static int relocate (struct aout_object *object, struct relocation_info *r, int is_data) {
 
     struct nlist *symbol;
-    int32_t opcode, result = 0;
     
     unsigned char *p;
-    int dgroup = 0;
+    int dgroup = 0, _end = 0, _edata = 0;
     
+    int32_t opcode, result = 0;
     uint32_t r_symbolnum = GET_UINT32 (r->r_symbolnum);
     
     int32_t symbolnum = r_symbolnum & 0xffffff;
@@ -590,6 +590,8 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
     
     }
     
+    symbol = &object->symtab[symbolnum];
+    
     if ((is_data && pcrel) || baserel || jmptable || rel || copy) {
     
         report_at (program_name, 0, REPORT_ERROR, "unsupported relocation type");
@@ -600,12 +602,10 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
     p = (unsigned char *) output + header_size + GET_INT32 (r->r_address);
     opcode = *(int32_t *) (p - 1) & 0xff;
     
-    symbol = &object->symtab[symbolnum];
-    
     if (ext) {
     
         char *symname = object->strtab + GET_INT32 (symbol->n_strx);
-        char *temp = xstrdup (symname);
+        char *temp = symname;
         
         struct aout_object *symobj;
         int32_t symidx;
@@ -613,9 +613,15 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
         if (state->format != LD_FORMAT_I386_AOUT && strstart ("DGROUP", (const char **) &temp)) {
         
             if (strcmp (temp, "__end") == 0) {
+            
+                _end = 1;
                 write741_to_byte_array (symbol->n_value, state->data_size + state->bss_size);
+            
             } else if (strcmp (temp, "__edata") == 0) {
+            
+                _edata = 1;
                 write741_to_byte_array (symbol->n_value, state->data_size);
+            
             } else {
             
                 result = ((char *) data - (char *) output);
@@ -689,7 +695,10 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
         if (ext || dgroup) {
         
             if (ext) {
+            
+                symbolnum = (symbol->n_type & N_TYPE);
                 result += GET_UINT32 (symbol->n_value);
+            
             }
         
         } else {
@@ -727,6 +736,8 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
         
         if (result >= 65535) {
         
+            int32_t r_address = GET_INT32 (r->r_address);
+            
             if (state->format == LD_FORMAT_BINARY || state->format == LD_FORMAT_MSDOS) {
             
                 report_at (object->filename, GET_INT32 (r->r_address), REPORT_ERROR, "call exceeds 65535 bytes");
@@ -737,11 +748,9 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
             number_to_chars (p, result % 16, 2);
             number_to_chars (p + 2, result / 16, 2);
             
-            for (i = 0; i < tgr.relocations_count; ++i) {
+            for (i = tgr.relocations_count - 1; i >= 0; --i) {
             
-                int32_t r_address = GET_INT32 (tgr.relocations[i].r_address);
-                
-                if (r_address == GET_INT32 (r->r_address)) {
+                if (GET_INT32 (tgr.relocations[i].r_address) == r_address) {
                     write741_to_byte_array ((unsigned char *) tgr.relocations[i].r_address, r_address + 2);
                 }
             
@@ -753,55 +762,17 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
             
             if (state->format == LD_FORMAT_MSDOS_MZ) {
             
+                int32_t r_address = GET_INT32 (r->r_address) + 1;
+                write741_to_byte_array ((unsigned char *) r->r_address, r_address);
+                
                 *(p - 1) = 0x0E;
-                p++;
-                
-                write741_to_byte_array ((unsigned char *) r->r_address, GET_INT32 (r->r_address) + 1);
-            
-            }
-            
-            for (i = tgr.relocations_count - 1; i >= 0; --i) {
-            
-                int32_t r_address = GET_INT32 (tgr.relocations[i].r_address);
-                
-                if (r_address + 1 == GET_INT32 (r->r_address)) {
-                
-                    write741_to_byte_array ((unsigned char *) tgr.relocations[i].r_address, r_address + 1);
-                    
-                    result = fix_offset (tgr.relocations[i], result);
-                    remove_relocation (&tgr, tgr.relocations[i]);
-                
-                }
-            
-            }
-            
-            number_to_chars (p, result - GET_INT32 (r->r_address) - 2, 2);
-            *(p - 1) = 0xE8;
-            
-            memset (p + 2, 0x90, 1);
-        
-        }
-    
-    } else if (dgroup) {
-    
-        result -= header_size;
-        number_to_chars (p, result / 16, 2);
-    
-    } else/* if (state->format == LD_FORMAT_MSDOS_MZ)*/ {
-    
-        if (state->format != LD_FORMAT_I386_AOUT) {
-        
-            int32_t data_addr = ((char *) data - (char *) output) - header_size;
-            int32_t i;
-            
-            if (result >= data_addr) {
-            
-                result -= (data_addr & 0xfffffff0);
                 
                 for (i = tgr.relocations_count - 1; i >= 0; --i) {
                 
-                    if (GET_INT32 (tgr.relocations[i].r_address) == GET_INT32 (r->r_address)) {
+                    if (GET_INT32 (tgr.relocations[i].r_address) + 1 == r_address) {
                     
+                        write741_to_byte_array ((unsigned char *) tgr.relocations[i].r_address, r_address);
+                        
                         result = fix_offset (tgr.relocations[i], result);
                         remove_relocation (&tgr, tgr.relocations[i]);
                     
@@ -810,14 +781,49 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
                 }
             
             }
+            
+            result -= GET_INT32 (r->r_address);
+            while (length-- > 2) { result--; }
+            
+            number_to_chars (p + 1, result, 2);
+            
+            number_to_chars (p, 0xE8, 1);
+            number_to_chars (p + 3, 0x90, 1);
+        
+        }
+    
+    } else if (dgroup) {
+    
+        result -= header_size;
+        number_to_chars (p, result / 16, 2);
+    
+    } else {
+    
+        if (!_end && !_edata && state->format == LD_FORMAT_MSDOS_MZ) {
+        
+            int32_t data_addr = ((char *) data - (char *) output) - header_size;
+            int32_t i, r_address = GET_INT32 (r->r_address);
+            
+            if (result >= data_addr) {
+                result -= (data_addr & 0xfffffff0);
+            }
+            
+            for (i = tgr.relocations_count - 1; i >= 0; --i) {
+            
+                if (GET_INT32 (tgr.relocations[i].r_address) == r_address) {
+                
+                    result = fix_offset (tgr.relocations[i], result);
+                    remove_relocation (&tgr, tgr.relocations[i]);
+                
+                }
+            
+            }
         
         }
         
         number_to_chars (p, result, length);
     
-    }/* else {
-        number_to_chars (p, result, length);
-    }*/
+    }
     
     return 0;
 
@@ -955,7 +961,6 @@ static int write_msdos_mz_object (FILE *ofp, uint32_t entry) {
     for (i = tgr.relocations_count - 1; i >= 0; --i) {
     
         struct relocation_info *r = &tgr.relocations[i];
-        /*report_at (NULL, 0, REPORT_INTERNAL_ERROR, "%x, %x", r->r_address, ((r->r_symbolnum >> 24) & 0xff));*/
         
         if (((GET_UINT32 (r->r_symbolnum) >> 24) & 0xff) == N_ABS) {
             remove_relocation (&tgr, *r);
@@ -1005,7 +1010,9 @@ static int write_msdos_mz_object (FILE *ofp, uint32_t entry) {
         output = temp;
         
         relocs = (char *) output + header_size;
+        
         text = (char *) output + header_size + reloc_sz;
+        data = (char *) text + state->text_size;
         
         memset (relocs, 0, reloc_sz);
         output_size += reloc_sz;

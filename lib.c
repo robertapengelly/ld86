@@ -40,19 +40,19 @@ enum options {
 
 static struct option opts[] = {
 
-    { "M",          OPTION_MAP,         OPTION_NO_ARG   },
-    { "Map",        OPTION_MAPFILE,     OPTION_HAS_ARG  },
-    { "N",          OPTION_IMPURE,      OPTION_NO_ARG   },
+    { "M",              OPTION_MAP,         OPTION_NO_ARG   },
+    { "Map",            OPTION_MAPFILE,     OPTION_HAS_ARG  },
+    { "N",              OPTION_IMPURE,      OPTION_NO_ARG   },
     
-    { "e",          OPTION_ENTRY,       OPTION_HAS_ARG  },
-    { "o",          OPTION_OUTFILE,     OPTION_HAS_ARG  },
-    { "s",          OPTION_STRIP,       OPTION_NO_ARG   },
+    { "e",              OPTION_ENTRY,       OPTION_HAS_ARG  },
+    { "o",              OPTION_OUTFILE,     OPTION_HAS_ARG  },
+    { "s",              OPTION_STRIP,       OPTION_NO_ARG   },
     
-    { "-oformat",   OPTION_FORMAT,      OPTION_HAS_ARG  },
-    { "-stacksize", OPTION_STACK,       OPTION_HAS_ARG  },
-    { "-help",      OPTION_HELP,        OPTION_NO_ARG   },
+    { "-oformat",       OPTION_FORMAT,      OPTION_HAS_ARG  },
+    { "-stacksize",     OPTION_STACK,       OPTION_HAS_ARG  },
+    { "-help",          OPTION_HELP,        OPTION_NO_ARG   },
     
-    { 0,            0,                  0               }
+    { 0,                0,                  0               }
 
 };
 
@@ -64,6 +64,7 @@ static void print_help (void) {
     
     fprintf (stderr, "Usage: %s [options] file...\n\n", program_name);
     fprintf (stderr, "Options:\n\n");
+    
     fprintf (stderr, "    -M                    Print map file on standard out\n");
     fprintf (stderr, "    -Map FILE             Write a map file\n");
     fprintf (stderr, "    -N                    Do not page align data\n");
