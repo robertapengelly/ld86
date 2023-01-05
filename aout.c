@@ -1033,13 +1033,13 @@ static int write_msdos_mz_object (FILE *ofp, uint32_t entry) {
         
             struct relocation_info *r = &dgr.relocations[i];
             
-            int32_t text_addr = ((char *) data - (char *) output) - header_size - reloc_sz;
+            int32_t data_addr = ((char *) data - (char *) output) - header_size - reloc_sz;
             int32_t r_address = GET_INT32 (r->r_address) + 2;
             
             number_to_chars ((unsigned char *) relocs + offset, r_address % 16, 2);
             number_to_chars ((unsigned char *) relocs + offset + 2, r_address / 16, 2);
             
-            number_to_chars ((unsigned char *) text + r_address, text_addr / 16, 2);
+            number_to_chars ((unsigned char *) text + r_address, data_addr / 16, 2);
             offset += 4;
         
         }
