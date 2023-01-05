@@ -802,18 +802,23 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
         if (!_end && !_edata && state->format == LD_FORMAT_MSDOS_MZ) {
         
             int32_t data_addr = ((char *) data - (char *) output) - header_size;
-            int32_t i, r_address = GET_INT32 (r->r_address);
             
-            if (result >= data_addr) {
-                result -= (data_addr & 0xfffffff0);
-            }
+            if ((unsigned long) result < data_addr + state->data_size) {
             
-            for (i = tgr.relocations_count - 1; i >= 0; --i) {
-            
-                if (GET_INT32 (tgr.relocations[i].r_address) == r_address) {
+                int32_t i, r_address = GET_INT32 (r->r_address);
                 
-                    result = fix_offset (tgr.relocations[i], result);
-                    remove_relocation (&tgr, tgr.relocations[i]);
+                if (result >= data_addr) {
+                    result -= (data_addr & 0xfffffff0);
+                }
+                
+                for (i = tgr.relocations_count - 1; i >= 0; --i) {
+                
+                    if (GET_INT32 (tgr.relocations[i].r_address) == r_address) {
+                    
+                        result = fix_offset (tgr.relocations[i], result);
+                        remove_relocation (&tgr, tgr.relocations[i]);
+                    
+                    }
                 
                 }
             
