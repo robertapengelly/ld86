@@ -802,23 +802,18 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
         if (!_end && !_edata && state->format == LD_FORMAT_MSDOS_MZ) {
         
             int32_t data_addr = ((char *) data - (char *) output) - header_size;
+            int32_t i, r_address = GET_INT32 (r->r_address);
             
-            if ((unsigned long) result < data_addr + state->data_size) {
+            if (result >= data_addr) {
+                result -= (data_addr & 0xfffffff0);
+            }
             
-                int32_t i, r_address = GET_INT32 (r->r_address);
+            for (i = tgr.relocations_count - 1; i >= 0; --i) {
+            
+                if (GET_INT32 (tgr.relocations[i].r_address) == r_address) {
                 
-                if (result >= data_addr) {
-                    result -= (data_addr & 0xfffffff0);
-                }
-                
-                for (i = tgr.relocations_count - 1; i >= 0; --i) {
-                
-                    if (GET_INT32 (tgr.relocations[i].r_address) == r_address) {
-                    
-                        result = fix_offset (tgr.relocations[i], result);
-                        remove_relocation (&tgr, tgr.relocations[i]);
-                    
-                    }
+                    result = fix_offset (tgr.relocations[i], result);
+                    remove_relocation (&tgr, tgr.relocations[i]);
                 
                 }
             
@@ -1037,11 +1032,14 @@ static int write_msdos_mz_object (FILE *ofp, uint32_t entry) {
         for (i = 0; i < dgr.relocations_count; ++i) {
         
             struct relocation_info *r = &dgr.relocations[i];
+            
+            int32_t text_addr = ((char *) data - (char *) output) - header_size;
             int32_t r_address = GET_INT32 (r->r_address) + 2;
             
             number_to_chars ((unsigned char *) relocs + offset, r_address % 16, 2);
             number_to_chars ((unsigned char *) relocs + offset + 2, r_address / 16, 2);
             
+            number_to_chars ((unsigned char *) text + r_address, text_addr / 16, 2);
             offset += 4;
         
         }
