@@ -654,7 +654,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
             
             r_address = GET_INT32 (r->r_address);
             
-            if (is_data) {
+            if (is_data && state->format == LD_FORMAT_I386_AOUT) {
                 r_address -= state->text_size;
             }
             
@@ -955,7 +955,7 @@ static int write_msdos_mz_object (FILE *ofp, uint32_t entry) {
     
     unsigned long stack_addr, stack_size;
     
-    uint32_t reloc_sz = 0;
+    uint32_t reloc_sz = 0, offset = 0;
     int32_t i;
     
     for (i = tgr.relocations_count - 1; i >= 0; --i) {
@@ -980,7 +980,7 @@ static int write_msdos_mz_object (FILE *ofp, uint32_t entry) {
     write721_to_byte_array (msdos_hdr->e_cblp, (ibss_addr % 512));
     write721_to_byte_array (msdos_hdr->e_cp, ALIGN_UP (ibss_addr, 512) / 512);
     
-    write721_to_byte_array (msdos_hdr->e_crlc, tgr.relocations_count);
+    write721_to_byte_array (msdos_hdr->e_crlc, tgr.relocations_count + dgr.relocations_count);
     write721_to_byte_array (msdos_hdr->e_cparhdr, ((header_size + reloc_sz) / 16));
     
     write721_to_byte_array (msdos_hdr->e_minalloc, (ALIGN_UP (ibss_size + stack_size, 16) / 16));
@@ -1017,29 +1017,27 @@ static int write_msdos_mz_object (FILE *ofp, uint32_t entry) {
         memset (relocs, 0, reloc_sz);
         output_size += reloc_sz;
         
-        i = 0;
-        
-        for (; i < tgr.relocations_count; ++i) {
+        for (i = 0; i < tgr.relocations_count; ++i) {
         
             struct relocation_info *r = &tgr.relocations[i];
-            
             int32_t r_address = GET_INT32 (r->r_address);
-            uint32_t offset = (i * 4);
             
             number_to_chars ((unsigned char *) relocs + offset, r_address % 16, 2);
             number_to_chars ((unsigned char *) relocs + offset + 2, r_address / 16, 2);
+            
+            offset += 4;
         
         }
         
-        for (; i < dgr.relocations_count; ++i) {
+        for (i = 0; i < dgr.relocations_count; ++i) {
         
             struct relocation_info *r = &dgr.relocations[i];
-            
-            int32_t r_address = GET_INT32 (r->r_address) + state->text_size;
-            uint32_t offset = (i * 4);
+            int32_t r_address = GET_INT32 (r->r_address) + 2;
             
             number_to_chars ((unsigned char *) relocs + offset, r_address % 16, 2);
             number_to_chars ((unsigned char *) relocs + offset + 2, r_address / 16, 2);
+            
+            offset += 4;
         
         }
     
