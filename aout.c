@@ -760,7 +760,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
         
             result -= header_size;
             
-            if (state->format == LD_FORMAT_MSDOS_MZ) {
+            /*if (state->format == LD_FORMAT_MSDOS_MZ) {*/
             
                 int32_t r_address = GET_INT32 (r->r_address) + 1;
                 write741_to_byte_array ((unsigned char *) r->r_address, r_address);
@@ -780,7 +780,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
                 
                 }
             
-            }
+            /*}*/
             
             result -= GET_INT32 (r->r_address);
             while (length-- > 2) { result--; }
