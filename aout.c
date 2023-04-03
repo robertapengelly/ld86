@@ -660,7 +660,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
             
             write741_to_byte_array ((unsigned char *) new_relocation.r_address, r_address);
             
-            if (dgroup || state->format == LD_FORMAT_I386_AOUT) {
+            if (dgroup) {
                 r_symbolnum = GET_UINT32 (r->r_symbolnum);
             } else {
                 r_symbolnum = GET_UINT32 (r->r_symbolnum) & (3L << 25);
