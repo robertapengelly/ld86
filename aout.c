@@ -671,7 +671,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
         
         }
         
-        if (opcode == 0x9A) {
+        if (opcode == 0x9A && symbolnum == 4) {
         
             uint32_t temp = *(int32_t *) ((char *) output + header_size + GET_INT32 (r->r_address));
             
@@ -730,7 +730,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
     
     }
     
-    if (opcode == 0x9A) {
+    if (opcode == 0x9A && symbolnum == 4) {
     
         int32_t i;
         
