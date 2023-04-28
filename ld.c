@@ -391,7 +391,7 @@ static int process_archive (FILE *ar_file, const char *root_fname) {
         sz = conv_dec (hdr.size, 10);
         sz_aligned = (sz % 2) ? (sz + 1) : sz;
         
-        if (memcmp (hdr.name, "__.SYMDEF", 9) == 0) {
+        if (memcmp (hdr.name, "__.SYMDEF", 9) == 0 || memcmp (hdr.name, "/", 1) == 0) {
         
             unsigned char temp[4], *temp3;
             uint32_t cnt, j, k, *temp2;
