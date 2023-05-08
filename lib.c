@@ -34,7 +34,8 @@ enum options {
     OPTION_MAPFILE,
     OPTION_OUTFILE,
     OPTION_STACK,
-    OPTION_STRIP
+    OPTION_STRIP,
+    OPTION_TEXT
 
 };
 
@@ -43,6 +44,7 @@ static struct option opts[] = {
     { "M",              OPTION_MAP,         OPTION_NO_ARG   },
     { "Map",            OPTION_MAPFILE,     OPTION_HAS_ARG  },
     { "N",              OPTION_IMPURE,      OPTION_NO_ARG   },
+    { "Ttext",          OPTION_TEXT,        OPTION_HAS_ARG  },
     
     { "e",              OPTION_ENTRY,       OPTION_HAS_ARG  },
     { "o",              OPTION_OUTFILE,     OPTION_HAS_ARG  },
@@ -68,6 +70,7 @@ static void print_help (void) {
     fprintf (stderr, "    -M                    Print map file on standard out\n");
     fprintf (stderr, "    -Map FILE             Write a map file\n");
     fprintf (stderr, "    -N                    Do not page align data\n");
+    fprintf (stderr, "    -Ttext OFFSET         Offset code by the specified offset\n");
     
     fprintf (stderr, "    -e ADDRESS            Set start address\n");
     fprintf (stderr, "    -o FILE               Set output file name (default a.out)\n");
@@ -401,6 +404,33 @@ void parse_args (int *pargc, char ***pargv, int optind) {
             
             case OPTION_STRIP: {
                 break;
+            }
+            
+            case OPTION_TEXT: {
+            
+                long conversion;
+                char *temp;
+                
+                errno = 0;
+                conversion = strtol (optarg, &temp, 0);
+                
+                if (!*optarg || isspace ((int) *optarg) || errno || *temp) {
+                
+                    report_at (program_name, 0, REPORT_ERROR, "bad number for texr start");
+                    exit (EXIT_FAILURE);
+                
+                }
+                
+                if (conversion < 0 || conversion > LONG_MAX) {
+                
+                    report_at (program_name, 0, REPORT_ERROR, "text start must be between 0 and %u", ULONG_MAX);
+                    exit (EXIT_FAILURE);
+                
+                }
+                
+                state->code_offset = (unsigned long) conversion;
+                break;
+            
             }
             
             default: {

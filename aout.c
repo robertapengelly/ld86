@@ -730,6 +730,8 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
     
     }
     
+    result += state->code_offset;
+    
     if (opcode == 0x9A && symbolnum == 4) {
     
         int32_t i;
