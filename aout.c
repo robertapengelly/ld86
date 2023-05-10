@@ -654,7 +654,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
             
             r_address = GET_INT32 (r->r_address);
             
-            if (is_data && state->format == LD_FORMAT_I386_AOUT) {
+            if (is_data && /*state->format == LD_FORMAT_I386_AOUT*/ state->format != LD_FORMAT_MSDOS_MZ) {
                 r_address -= state->text_size;
             }
             
