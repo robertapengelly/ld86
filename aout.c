@@ -801,7 +801,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
     
     } else {
     
-        if (!_end && !_edata && state->format == LD_FORMAT_MSDOS_MZ) {
+        if (!_end && !_edata && state->format != LD_FORMAT_I386_AOUT) {
         
             int32_t data_addr = ((char *) data - (char *) output) - header_size;
             int32_t i, r_address = GET_INT32 (r->r_address);
