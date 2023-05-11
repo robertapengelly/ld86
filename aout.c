@@ -692,10 +692,6 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
         
         }
         
-        if (!dgroup) {
-            result += state->code_offset;
-        }
-        
         if (ext || dgroup) {
         
             if (ext) {
@@ -729,6 +725,8 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
                 result += objbsssize;
             
             }
+            
+            result += state->code_offset;
         
         }
     
