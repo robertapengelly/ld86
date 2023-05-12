@@ -416,7 +416,7 @@ void parse_args (int *pargc, char ***pargv, int optind) {
                 
                 if (!*optarg || isspace ((int) *optarg) || errno || *temp) {
                 
-                    report_at (program_name, 0, REPORT_ERROR, "bad number for texr start");
+                    report_at (program_name, 0, REPORT_ERROR, "bad number for text start");
                     exit (EXIT_FAILURE);
                 
                 }

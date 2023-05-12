@@ -625,6 +625,8 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
             } else {
             
                 result = ((char *) data - (char *) output);
+                result += state->code_offset;
+                
                 dgroup = 1;
             
             }
@@ -711,7 +713,10 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
             }
             
             if (symbolnum == 4) {
+            
                 result += objtextsize;
+                result += state->code_offset;
+            
             }
             
             if (symbolnum == 6) {
@@ -725,8 +730,6 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
                 result += objbsssize;
             
             }
-            
-            result += state->code_offset;
         
         }
     
@@ -806,7 +809,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
             int32_t data_addr = ((char *) data - (char *) output) - header_size;
             int32_t i, r_address = GET_INT32 (r->r_address);
             
-            if (result >= data_addr) {
+            if ((symbolnum == 6 || symbolnum == 8) && result >= data_addr) {
                 result -= (data_addr & 0xfffffff0);
             }
             
@@ -1087,6 +1090,9 @@ int create_executable_from_aout_objects (void) {
             state->data_size = ALIGN_UP (state->data_size, 16);
         
         }*/
+        
+        /*state->text_size = ALIGN_UP (state->text_size, 16);
+        state->data_size = ALIGN_UP (state->data_size, 16);*/
         
         output_size = state->text_size + state->data_size;
         
