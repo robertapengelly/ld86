@@ -809,16 +809,33 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
             int32_t data_addr = ((char *) data - (char *) output) - header_size;
             int32_t i, r_address = GET_INT32 (r->r_address);
             
-            if ((symbolnum == 6 || symbolnum == 8) && result >= data_addr) {
-                result -= (data_addr & 0xfffffff0);
-            }
+            if (is_data) {
             
-            for (i = tgr.relocations_count - 1; i >= 0; --i) {
-            
-                if (GET_INT32 (tgr.relocations[i].r_address) == r_address) {
+                int32_t temp = data_addr;
                 
-                    result = fix_offset (tgr.relocations[i], result);
-                    remove_relocation (&tgr, tgr.relocations[i]);
+                temp += state->code_offset;
+                number_to_chars (p + 2, temp / 16, 2);
+                
+                if ((symbolnum == 6 || symbolnum == 8) && result >= data_addr) {
+                    result -= (data_addr & 0xfffffff0);
+                }
+                
+                length = 2;
+            
+            } else {
+            
+                if ((symbolnum == 6 || symbolnum == 8) && result >= data_addr) {
+                    result -= (data_addr & 0xfffffff0);
+                }
+                
+                for (i = tgr.relocations_count - 1; i >= 0; --i) {
+                
+                    if (GET_INT32 (tgr.relocations[i].r_address) == r_address) {
+                    
+                        result = fix_offset (tgr.relocations[i], result);
+                        remove_relocation (&tgr, tgr.relocations[i]);
+                    
+                    }
                 
                 }
             
