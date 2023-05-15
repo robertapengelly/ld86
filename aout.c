@@ -809,14 +809,14 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
             int32_t data_addr = ((char *) data - (char *) output) - header_size;
             int32_t i, r_address = GET_INT32 (r->r_address);
             
-            if (is_data) {
+            if (is_data && (symbolnum == 6 || symbolnum == 8)) {
             
                 int32_t temp = data_addr;
                 
                 temp += state->code_offset;
                 number_to_chars (p + 2, temp / 16, 2);
                 
-                if ((symbolnum == 6 || symbolnum == 8) && result >= data_addr) {
+                if (result >= data_addr) {
                     result -= (data_addr & 0xfffffff0);
                 }
                 
