@@ -700,6 +700,10 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
             
                 symbolnum = (symbol->n_type & N_TYPE);
                 result += GET_UINT32 (symbol->n_value);
+                
+                if (is_data && symbolnum == 4) {
+                    result += state->code_offset;
+                }
             
             }
         
