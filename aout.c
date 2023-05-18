@@ -1117,6 +1117,10 @@ int create_executable_from_aout_objects (void) {
         
         output_size = state->text_size + state->data_size;
         
+        if (state->format == LD_FORMAT_BINARY && state->include_bss) {
+            output_size += state->bss_size;
+        }
+        
         if ((output = malloc (output_size)) == NULL) {
             return EXIT_FAILURE;
         }
@@ -1221,7 +1225,7 @@ int create_executable_from_aout_objects (void) {
     
         fix_offsets ();
         
-        if (fwrite ((char *) output, state->text_size + state->data_size, 1, ofp) != 1) {
+        if (fwrite ((char *) output, output_size, 1, ofp) != 1) {
         
             report_at (program_name, 0, REPORT_ERROR, "failed to write data to '%s'", state->outfile);
             fclose (ofp);

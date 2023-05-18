@@ -30,6 +30,7 @@ enum options {
     OPTION_FORMAT,
     OPTION_HELP,
     OPTION_IMPURE,
+    OPTION_INC_BSS,
     OPTION_MAP,
     OPTION_MAPFILE,
     OPTION_OUTFILE,
@@ -50,6 +51,7 @@ static struct option opts[] = {
     { "o",              OPTION_OUTFILE,     OPTION_HAS_ARG  },
     { "s",              OPTION_STRIP,       OPTION_NO_ARG   },
     
+    { "-include-bss",   OPTION_INC_BSS,     OPTION_NO_ARG   },
     { "-oformat",       OPTION_FORMAT,      OPTION_HAS_ARG  },
     { "-stacksize",     OPTION_STACK,       OPTION_HAS_ARG  },
     { "-help",          OPTION_HELP,        OPTION_NO_ARG   },
@@ -76,6 +78,7 @@ static void print_help (void) {
     fprintf (stderr, "    -o FILE               Set output file name (default a.out)\n");
     fprintf (stderr, "    -s                    Strip all (currently does nothing)\n");
     
+    fprintf (stderr, "    --include-bss         Include bss data in a flat binary\n");
     fprintf (stderr, "    --oformat FORMAT      Specify the format of output file (default msdos)\n");
     fprintf (stderr, "                              Supported formats are:\n");
     /*fprintf (stderr, "                                  a.out-i386, coff-i386, msdos-i386, pe-i386\n");*/
@@ -329,6 +332,13 @@ void parse_args (int *pargc, char ***pargv, int optind) {
             case OPTION_IMPURE: {
             
                 state->impure = 1;
+                break;
+            
+            }
+            
+            case OPTION_INC_BSS: {
+            
+                state->include_bss = 1;
                 break;
             
             }
