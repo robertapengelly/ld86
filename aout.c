@@ -627,9 +627,13 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
             
             } else if (strcmp (temp, "__edata") == 0) {
             
+                int32_t data_addr = ((char *) data - (char *) output) - header_size;
                 int32_t temp = ((char *) data - (char *) output);
-                write741_to_byte_array (symbol->n_value, temp);
                 
+                temp += state->data_size;
+                temp -= (data_addr & 0xfffffff0);
+                
+                write741_to_byte_array (symbol->n_value, temp);
                 _edata = 1;
             
             } else {
