@@ -614,20 +614,22 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
         
             if (strcmp (temp, "__end") == 0) {
             
+                int32_t data_addr = ((char *) data - (char *) output) - header_size;
                 int32_t temp = ((char *) data - (char *) output);
                 
                 temp += state->data_size;
                 temp += state->bss_size;
                 
-                write741_to_byte_array (symbol->n_value, temp % 16);
+                temp -= (data_addr & 0xfffffff0);
+                write741_to_byte_array (symbol->n_value, temp);
+                
                 _end = 1;
             
             } else if (strcmp (temp, "__edata") == 0) {
             
                 int32_t temp = ((char *) data - (char *) output);
-                temp += state->data_size;
+                write741_to_byte_array (symbol->n_value, temp);
                 
-                write741_to_byte_array (symbol->n_value, temp % 16);
                 _edata = 1;
             
             } else {
