@@ -64,6 +64,7 @@ struct ld_state {
     unsigned long text_size, data_size, bss_size;
     unsigned long stack_size;
     
+    int flat_bin;
     int include_bss;
 
 };

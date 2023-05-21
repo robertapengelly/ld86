@@ -26,6 +26,7 @@ struct option {
 enum options {
 
     OPTION_IGNORED = 0,
+    OPTION_EMULATION,
     OPTION_ENTRY,
     OPTION_FORMAT,
     OPTION_HELP,
@@ -48,6 +49,7 @@ static struct option opts[] = {
     { "Ttext",          OPTION_TEXT,        OPTION_HAS_ARG  },
     
     { "e",              OPTION_ENTRY,       OPTION_HAS_ARG  },
+    { "m",              OPTION_EMULATION,   OPTION_HAS_ARG  },
     { "o",              OPTION_OUTFILE,     OPTION_HAS_ARG  },
     { "s",              OPTION_STRIP,       OPTION_NO_ARG   },
     
@@ -75,6 +77,7 @@ static void print_help (void) {
     fprintf (stderr, "    -Ttext OFFSET         Offset code by the specified offset\n");
     
     fprintf (stderr, "    -e ADDRESS            Set start address\n");
+    fprintf (stderr, "    -m EMULATION          Set emulation\n");
     fprintf (stderr, "    -o FILE               Set output file name (default a.out)\n");
     fprintf (stderr, "    -s                    Strip all (currently does nothing)\n");
     
@@ -274,6 +277,20 @@ void parse_args (int *pargc, char ***pargv, int optind) {
         
         switch (popt->index) {
         
+            case OPTION_EMULATION: {
+            
+                if (xstrcasecmp (optarg, "a.out_i386") == 0) {
+                
+                    state->flat_bin = 1;
+                    break;
+                
+                }
+                
+                report_at (program_name, 0, REPORT_ERROR, "'%s' is not a valid emulation option", optarg);
+                exit (EXIT_FAILURE);
+            
+            }
+            
             case OPTION_ENTRY: {
             
                 state->entry = xstrdup (optarg);

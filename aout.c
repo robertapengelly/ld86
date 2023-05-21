@@ -610,7 +610,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
         struct aout_object *symobj;
         int32_t symidx;
         
-        if (state->format != LD_FORMAT_I386_AOUT && strstart ("DGROUP", (const char **) &temp)) {
+        if (!state->flat_bin && state->format != LD_FORMAT_I386_AOUT && strstart ("DGROUP", (const char **) &temp)) {
         
             if (strcmp (temp, "__end") == 0) {
             
@@ -670,7 +670,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
             
             r_address = GET_INT32 (r->r_address);
             
-            if (is_data && /*state->format == LD_FORMAT_I386_AOUT*/ state->format != LD_FORMAT_MSDOS_MZ) {
+            if (!state->flat_bin && is_data && /*state->format == LD_FORMAT_I386_AOUT*/ state->format != LD_FORMAT_MSDOS_MZ) {
                 r_address -= state->text_size;
             }
             
@@ -731,10 +731,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
             }
             
             if (symbolnum == 4) {
-            
                 result += objtextsize;
-                result += state->code_offset;
-            
             }
             
             if (symbolnum == 6) {
@@ -747,6 +744,12 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
                 result += state->data_size;
                 result += objbsssize;
             
+            }
+            
+            if (state->format == LD_FORMAT_I386_AOUT || state->flat_bin) {
+                result += state->code_offset;
+            } else if (symbolnum == 4) {
+                result += state->code_offset;
             }
         
         }
@@ -822,7 +825,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
     
     } else {
     
-        if (!_end && !_edata && state->format != LD_FORMAT_I386_AOUT) {
+        if (!state->flat_bin && !_end && !_edata && state->format != LD_FORMAT_I386_AOUT) {
         
             int32_t data_addr = ((char *) data - (char *) output) - header_size;
             int32_t i, r_address = GET_INT32 (r->r_address);
