@@ -715,7 +715,9 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
                 symbolnum = (symbol->n_type & N_TYPE);
                 result += GET_UINT32 (symbol->n_value);
                 
-                if (is_data && symbolnum == 4) {
+                if (state->format == LD_FORMAT_I386_AOUT || state->flat_bin) {
+                    result += state->code_offset;
+                } else if (is_data && symbolnum == 4) {
                     result += state->code_offset;
                 }
             
