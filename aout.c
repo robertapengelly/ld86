@@ -551,12 +551,14 @@ static int add_relocation (struct gr *gr, struct relocation_info *r) {
 
 }
 
+static int dgroup = 0;
+
 static int relocate (struct aout_object *object, struct relocation_info *r, int is_data) {
 
     struct nlist *symbol;
     
     unsigned char *p;
-    int dgroup = 0, _end = 0, _edata = 0;
+    int _end = 0, _edata = 0;
     
     int32_t opcode, result = 0;
     uint32_t r_symbolnum = GET_UINT32 (r->r_symbolnum);
@@ -641,7 +643,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
                 result = ((char *) data - (char *) output);
                 result += state->code_offset;
                 
-                dgroup = 1;
+                dgroup++;
             
             }
         
@@ -847,7 +849,7 @@ static int relocate (struct aout_object *object, struct relocation_info *r, int 
             
             } else {
             
-                if ((symbolnum == 6 || symbolnum == 8) && result >= data_addr) {
+                if (dgroup && (symbolnum == 6 || symbolnum == 8) && result >= data_addr) {
                     result -= (data_addr & 0xfffffff0);
                 }
                 
