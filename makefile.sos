@@ -1,0 +1,23 @@
+AS=pdas --oformat coff
+CC=gccwin
+LD=pdld
+
+COPTS=-S -O2 -fno-common -ansi -I. -I../pdos/pdpclib -U__WIN32__ -D__NOBIVA__ -D__PDOS__ \
+    -D__HAVESYS__=_System -D__OS2__ -D__32BIT__
+LDFLAGS=-s --no-insert-timestamp -nostdlib --oformat lx \
+    --stub ../pdos/pdpclib/needpdos.exe
+
+COBJ=aout.obj hashtab.obj ld.obj lib.obj map.obj report.obj vector.obj write7x.obj
+
+all: clean ld86.exe
+
+ld86.exe: $(COBJ)
+  $(LD) $(LDFLAGS) -o ld86.exe ../pdos/pdpclib/os2strt.obj $(COBJ) ../pdos/pdpclib/pdpos2.lib ../pdos/pdpclib/os2.lib
+
+.c.obj:
+  $(CC) $(COPTS) $<
+  $(AS) -o $@ $*.s
+  rm -f $*.s
+
+clean:
+  rm -f *.obj ld86.exe
