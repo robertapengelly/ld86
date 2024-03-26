@@ -1,0 +1,25 @@
+# Build for Linux
+# Must run makefile.lnp in pdpclib first
+
+AS=pdas --oformat coff
+CC=gccwin
+LD=pdld
+
+COPTS=-S -O2 -fno-common -ansi -I. -I../pdos/pdpclib -U__WIN32__ -D__NOBIVA__ \
+    -D__gnu_linux__ -D__PDOS__
+LDFLAGS=-s --no-insert-timestamp -nostdlib --oformat elf --emit-relocs
+
+COBJ=aout.obj hashtab.obj ld.obj lib.obj map.obj report.obj vector.obj write7x.obj
+
+all: clean ld86.exe
+
+ld86.exe: $(COBJ)
+  $(LD) $(LDFLAGS) -o ld86.exe ../pdos/pdpclib/linstart.o $(COBJ) ../pdos/pdpclib/pdplinux.a
+
+.c.obj:
+  $(CC) $(COPTS) $<
+  $(AS) -o $@ $*.s
+  rm -f $*.s
+
+clean:
+  rm -f *.obj ld86.exe
